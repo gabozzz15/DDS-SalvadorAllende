@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Package, ArrowRightLeft, Trash2, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Package, ArrowRightLeft, Trash2, AlertTriangle, TrendingUp, Settings, BarChart3, Clock, CheckCircle } from 'lucide-react';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -70,63 +70,125 @@ const Dashboard: React.FC = () => {
         );
     }
 
-    // Calcular KPIs adicionales
-    const tasaUtilizacion = stats.bienes?.total > 0
-        ? ((stats.bienes.activos / stats.bienes.total) * 100).toFixed(1)
-        : 0;
-
-    const tasaDesincorporacion = stats.bienes?.total > 0
-        ? ((stats.bienes.desincorporados / stats.bienes.total) * 100).toFixed(1)
-        : 0;
-
-    const tasaAprobacionTransferencias = stats.transferencias?.total > 0
-        ? (((stats.transferencias.aprobadas + stats.transferencias.ejecutadas) / stats.transferencias.total) * 100).toFixed(1)
-        : 0;
-
-    const cards = [
+    // KPI Definitions
+    const kpiDefinitions = [
         {
+            id: 'total_bienes',
             title: 'Total de Bienes',
-            value: stats.bienes?.total || 0,
-            subtitle: `${stats.bienes?.activos || 0} activos`,
+            getValue: (s: any) => s.bienes?.total || 0,
+            getSubtitle: (s: any) => `${s.bienes?.activos || 0} activos`,
             icon: Package,
             color: 'bg-blue-500',
         },
         {
+            id: 'bienes_inactivos',
             title: 'Bienes Inactivos',
-            value: stats.bienes?.inactivos || 0,
-            subtitle: 'Sin asignar',
+            getValue: (s: any) => s.bienes?.inactivos || 0,
+            getSubtitle: (_: any) => 'Sin asignar',
             icon: Package,
             color: 'bg-gray-500',
         },
         {
+            id: 'trans_pendientes',
             title: 'Transferencias Pendientes',
-            value: stats.transferencias?.pendientes || 0,
-            subtitle: `${stats.transferencias?.total || 0} total`,
+            getValue: (s: any) => s.transferencias?.pendientes || 0,
+            getSubtitle: (s: any) => `${s.transferencias?.total || 0} total`,
             icon: ArrowRightLeft,
             color: 'bg-yellow-500',
         },
         {
-            title: 'Desincorporaciones Pendientes',
-            value: stats.desincorporaciones?.pendientes || 0,
-            subtitle: `${stats.desincorporaciones?.total || 0} total`,
+            id: 'desinc_pendientes',
+            title: 'Desincorp. Pendientes',
+            getValue: (s: any) => s.desincorporaciones?.pendientes || 0,
+            getSubtitle: (s: any) => `${s.desincorporaciones?.total || 0} total`,
             icon: Trash2,
             color: 'bg-red-500',
         },
         {
+            id: 'alertas',
             title: 'Alertas No Leídas',
-            value: stats.alertas?.noLeidas || 0,
-            subtitle: `${stats.alertas?.total || 0} total`,
+            getValue: (s: any) => s.alertas?.noLeidas || 0,
+            getSubtitle: (s: any) => `${s.alertas?.total || 0} total`,
             icon: AlertTriangle,
             color: 'bg-orange-500',
         },
         {
+            id: 'tasa_utilizacion',
             title: 'Tasa de Utilización',
-            value: `${tasaUtilizacion}%`,
-            subtitle: 'Bienes activos vs total',
+            getValue: (s: any) => `${s.bienes?.total > 0 ? ((s.bienes.activos / s.bienes.total) * 100).toFixed(1) : 0}%`,
+            getSubtitle: (_: any) => 'Bienes activos vs total',
             icon: TrendingUp,
             color: 'bg-green-500',
         },
+        {
+            id: 'tasa_aprobacion',
+            title: 'Tasa de Aprobación',
+            getValue: (s: any) => `${s.transferencias?.total > 0 ? (((s.transferencias.aprobadas + s.transferencias.ejecutadas) / s.transferencias.total) * 100).toFixed(1) : 0}%`,
+            getSubtitle: (_: any) => 'Eficiencia en aprobaciones',
+            icon: CheckCircle,
+            color: 'bg-purple-500',
+        },
+        {
+            id: 'tiempo_aprobacion',
+            title: 'Tiempo Aprobación',
+            getValue: (s: any) => s.desincorporaciones?.tiempoPromedioAprobacion ? (s.desincorporaciones.tiempoPromedioAprobacion / 3600).toFixed(1) : '0',
+            getSubtitle: (_: any) => 'Horas promedio (Desincorp.)',
+            icon: Clock,
+            color: 'bg-amber-500',
+        },
+        {
+            id: 'trans_temporales',
+            title: 'Transf. Temporales Activas',
+            getValue: (s: any) => s.transferencias?.temporalesActivas || 0,
+            getSubtitle: (_: any) => 'Bienes en préstamo',
+            icon: ArrowRightLeft,
+            color: 'bg-teal-500',
+        }
     ];
+
+    // State for favorites
+    const [favoriteKpis, setFavoriteKpis] = useState<string[]>(() => {
+        const saved = localStorage.getItem('dashboard_favorite_kpis');
+        return saved ? JSON.parse(saved) : ['total_bienes', 'trans_pendientes', 'desinc_pendientes', 'trans_temporales'];
+    });
+
+    const [favoriteCharts, setFavoriteCharts] = useState<string[]>(() => {
+        const saved = localStorage.getItem('dashboard_favorite_charts');
+        return saved ? JSON.parse(saved) : ['chart_estado', 'chart_procesos'];
+    });
+
+    const [isConfigOpen, setIsConfigOpen] = useState(false);
+    const [showAllStats, setShowAllStats] = useState(false); // "Ver más" toggle
+
+    useEffect(() => {
+        localStorage.setItem('dashboard_favorite_kpis', JSON.stringify(favoriteKpis));
+    }, [favoriteKpis]);
+
+    useEffect(() => {
+        localStorage.setItem('dashboard_favorite_charts', JSON.stringify(favoriteCharts));
+    }, [favoriteCharts]);
+
+    const toggleKpiFavorite = (id: string) => {
+        setFavoriteKpis(prev => {
+            if (prev.includes(id)) {
+                if (prev.length <= 1) return prev; // Prevent empty
+                return prev.filter(k => k !== id);
+            } else {
+                if (prev.length >= 4) return prev; // Max 4 for main view validation (UI enforces this)
+                return [...prev, id];
+            }
+        });
+    };
+
+    const toggleChartFavorite = (id: string) => {
+        setFavoriteCharts(prev => {
+            if (prev.includes(id)) return prev.filter(c => c !== id);
+            if (prev.length >= 2) return prev; // Max 2 rule
+            return [...prev, id];
+        });
+    };
+
+    // Chart Data Definitions
 
     // Chart data for Bienes por Estado (Doughnut Chart)
     const bienesEstadoChartData = {
@@ -152,7 +214,7 @@ const Dashboard: React.FC = () => {
                     'rgba(59, 130, 246, 1)',
                     'rgba(239, 68, 68, 1)',
                 ],
-                borderWidth: 2,
+                borderWidth: 1,
             },
         ],
     };
@@ -176,7 +238,7 @@ const Dashboard: React.FC = () => {
                     'rgba(249, 115, 22, 1)',
                     'rgba(168, 85, 247, 1)',
                 ],
-                borderWidth: 2,
+                borderWidth: 1,
             },
         ],
     };
@@ -194,7 +256,7 @@ const Dashboard: React.FC = () => {
                 ],
                 backgroundColor: 'rgba(59, 130, 246, 0.8)',
                 borderColor: 'rgba(59, 130, 246, 1)',
-                borderWidth: 2,
+                borderWidth: 1,
             },
             {
                 label: 'Desincorporaciones',
@@ -205,14 +267,14 @@ const Dashboard: React.FC = () => {
                 ],
                 backgroundColor: 'rgba(239, 68, 68, 0.8)',
                 borderColor: 'rgba(239, 68, 68, 1)',
-                borderWidth: 2,
+                borderWidth: 1,
             },
         ],
     };
 
     const chartOptions = {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: {
                 position: 'bottom' as const,
@@ -220,262 +282,234 @@ const Dashboard: React.FC = () => {
         },
     };
 
-    const barChartOptions = {
-        ...chartOptions,
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1,
-                },
-            },
+    const chartDefinitions = [
+        {
+            id: 'chart_estado',
+            title: 'Estado de Bienes',
+            component: <Doughnut data={bienesEstadoChartData} options={chartOptions} />
         },
-    };
+        {
+            id: 'chart_procesos',
+            title: 'Transferencias vs Desincorporaciones',
+            component: <Bar data={procesosChartData} options={chartOptions} />
+        },
+        {
+            id: 'chart_origen',
+            title: 'Origen de Bienes',
+            component: <Pie data={origenChartData} options={chartOptions} />
+        }
+    ];
+
+    // Filter helpers
+    const mainKpis = kpiDefinitions.filter(k => favoriteKpis.includes(k.id));
+    const otherKpis = kpiDefinitions.filter(k => !favoriteKpis.includes(k.id));
+
+    const mainCharts = chartDefinitions.filter(c => favoriteCharts.includes(c.id));
+    const otherCharts = chartDefinitions.filter(c => !favoriteCharts.includes(c.id));
 
     return (
-        <div>
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600 mt-1">Resumen general del sistema - Indicadores de Gestión SUDEBIP</p>
+        <div className="space-y-8">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+                    <p className="text-gray-500 mt-1">Resumen ejecutivo e indicadores clave de desempeño (KPI)</p>
+                </div>
+                <button
+                    onClick={() => setIsConfigOpen(true)}
+                    className="btn btn-outline flex items-center gap-2 hover:bg-gray-100 transition-colors"
+                >
+                    <Settings className="w-4 h-4" />
+                    Personalizar
+                </button>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {cards.map((card) => {
-                    const Icon = card.icon;
-                    return (
-                        <div key={card.title} className="card">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                                    <p className="text-3xl font-bold text-gray-900 mt-2">{card.value}</p>
-                                    <p className="text-sm text-gray-500 mt-1">{card.subtitle}</p>
+            {/* KPI Grid - Favorites */}
+            <div>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Indicadores Principales</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {mainKpis.map((kpi) => {
+                        const Icon = kpi.icon;
+                        return (
+                            <div key={kpi.id} className="card hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-transparent hover:border-l-blue-500">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500">{kpi.title}</p>
+                                        <p className="text-2xl font-bold text-gray-900 mt-2">{kpi.getValue(stats)}</p>
+                                        <p className="text-xs text-gray-400 mt-1">{kpi.getSubtitle(stats)}</p>
+                                    </div>
+                                    <div className={`p-3 rounded-xl ${kpi.color} bg-opacity-10`}>
+                                        <Icon className={`w-6 h-6 ${kpi.color.replace('bg-', 'text-')}`} />
+                                    </div>
                                 </div>
-                                <div className={`${card.color} p-3 rounded-lg`}>
-                                    <Icon className="w-6 h-6 text-white" />
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Charts Grid - Favorites */}
+            <div>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Gráficas Principales</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {mainCharts.map((chart) => (
+                        <div key={chart.id} className="card h-80 flex flex-col">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">{chart.title}</h3>
+                            <div className="flex-1 relative">
+                                {chart.component}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Collapsible Section */}
+            {(otherKpis.length > 0 || otherCharts.length > 0) && (
+                <div className="border-t border-gray-200 pt-8">
+                    <div className="flex justify-center">
+                        <button
+                            onClick={() => setShowAllStats(!showAllStats)}
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-6 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2"
+                        >
+                            {showAllStats ? 'Ocultar detalles adicionales' : 'Ver más indicadores y gráficas'}
+                            <TrendingUp className={`w-4 h-4 transition-transform ${showAllStats ? 'rotate-180' : ''}`} />
+                        </button>
+                    </div>
+
+                    {showAllStats && (
+                        <div className="mt-8 space-y-8 animate-fade-in-down">
+                            {otherKpis.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {otherKpis.map((kpi) => {
+                                        const Icon = kpi.icon;
+                                        return (
+                                            <div key={kpi.id} className="card bg-gray-50 border-gray-100">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-500">{kpi.title}</p>
+                                                        <p className="text-xl font-semibold text-gray-700 mt-1">{kpi.getValue(stats)}</p>
+                                                    </div>
+                                                    <Icon className="w-5 h-5 text-gray-400" />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
+                            )}
+
+                            {otherCharts.length > 0 && (
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {otherCharts.map((chart) => (
+                                        <div key={chart.id} className="card h-64">
+                                            <h3 className="text-md font-medium text-gray-700 mb-2">{chart.title}</h3>
+                                            <div className="h-full pb-6">
+                                                {chart.component}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Configuration Modal */}
+            {isConfigOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">Personalizar Dashboard</h2>
+                                <p className="text-sm text-gray-500">Selecciona los elementos que deseas ver destacados</p>
                             </div>
+                            <button onClick={() => setIsConfigOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                <span className="sr-only">Cerrar</span>
+                                <Settings className="w-6 h-6" />
+                            </button>
                         </div>
-                    );
-                })}
-            </div>
 
-            {/* KPIs de Tiempo - Indicadores de Gestión */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-2">⏱️ Tiempo Promedio de Registro</h3>
-                    <div className="flex items-end gap-2">
-                        <span className="text-4xl font-bold text-blue-700">
-                            {stats.bienes?.tiempoPromedioRegistro ? (stats.bienes.tiempoPromedioRegistro / 60).toFixed(1) : '0'}
-                        </span>
-                        <span className="text-blue-600 mb-1">minutos</span>
-                    </div>
-                    <p className="text-sm text-blue-600 mt-2">KPI: Eficiencia en registro de bienes</p>
-                    <div className="mt-3 pt-3 border-t border-blue-200">
-                        <p className="text-xs text-blue-700">
-                            Meta SUDEBIP: &lt; 5 minutos por bien
-                        </p>
-                    </div>
-                </div>
+                        <div className="p-6 overflow-y-auto flex-1 space-y-8">
+                            {/* KPI Selection */}
+                            <section>
+                                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3 flex items-center gap-2">
+                                    <Package className="w-4 h-4 text-blue-500" />
+                                    Indicadores (Máx. 4)
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {kpiDefinitions.map(kpi => (
+                                        <label key={kpi.id} className={`
+                                            flex items-center p-3 rounded-lg border cursor-pointer transition-all
+                                            ${favoriteKpis.includes(kpi.id)
+                                                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                                                : 'border-gray-200 hover:bg-gray-50'}
+                                        `}>
+                                            <input
+                                                type="checkbox"
+                                                className="checkbox checkbox-primary mr-3"
+                                                checked={favoriteKpis.includes(kpi.id)}
+                                                onChange={() => {
+                                                    if (!favoriteKpis.includes(kpi.id) && favoriteKpis.length >= 4) {
+                                                        // Prevent adding more than 4
+                                                        return;
+                                                    }
+                                                    toggleKpiFavorite(kpi.id);
+                                                }}
+                                                disabled={!favoriteKpis.includes(kpi.id) && favoriteKpis.length >= 4}
+                                            />
+                                            <span className="text-sm font-medium text-gray-700">{kpi.title}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2 text-right">
+                                    {favoriteKpis.length}/4 seleccionados
+                                </p>
+                            </section>
 
-                <div className="card bg-gradient-to-r from-green-50 to-emerald-50 border-green-100">
-                    <h3 className="text-lg font-semibold text-green-900 mb-2">✅ Tiempo Promedio de Aprobación</h3>
-                    <div className="flex items-end gap-2">
-                        <span className="text-4xl font-bold text-green-700">
-                            {stats.transferencias?.tiempoPromedioAprobacion ? (stats.transferencias.tiempoPromedioAprobacion / 3600).toFixed(1) : '0'}
-                        </span>
-                        <span className="text-green-600 mb-1">horas</span>
-                    </div>
-                    <p className="text-sm text-green-600 mt-2">KPI: Agilidad en procesos de transferencia</p>
-                    <div className="mt-3 pt-3 border-t border-green-200">
-                        <p className="text-xs text-green-700">
-                            Meta SUDEBIP: &lt; 48 horas
-                        </p>
-                    </div>
-                </div>
-
-                <div className="card bg-gradient-to-r from-purple-50 to-pink-50 border-purple-100">
-                    <h3 className="text-lg font-semibold text-purple-900 mb-2">📊 Tasa de Aprobación</h3>
-                    <div className="flex items-end gap-2">
-                        <span className="text-4xl font-bold text-purple-700">
-                            {tasaAprobacionTransferencias}%
-                        </span>
-                    </div>
-                    <p className="text-sm text-purple-600 mt-2">KPI: Eficiencia en aprobaciones</p>
-                    <div className="mt-3 pt-3 border-t border-purple-200">
-                        <p className="text-xs text-purple-700">
-                            Meta: &gt; 85% de aprobación
-                        </p>
-                    </div>
-                </div>
-
-                <div className="card bg-gradient-to-r from-orange-50 to-amber-50 border-orange-100">
-                    <h3 className="text-lg font-semibold text-orange-900 mb-2">⏱️ Tiempo de Aprobación (Desincorp.)</h3>
-                    <div className="flex items-end gap-2">
-                        <span className="text-4xl font-bold text-orange-700">
-                            {stats.desincorporaciones?.tiempoPromedioAprobacion ? (stats.desincorporaciones.tiempoPromedioAprobacion / 3600).toFixed(1) : '0'}
-                        </span>
-                        <span className="text-orange-600 mb-1">horas</span>
-                    </div>
-                    <p className="text-sm text-orange-600 mt-2">KPI: Agilidad en desincorporaciones</p>
-                    <div className="mt-3 pt-3 border-t border-orange-200">
-                        <p className="text-xs text-orange-700">
-                            Meta SUDEBIP: &lt; 72 horas
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                {/* Doughnut Chart - Bienes por Estado */}
-                <div className="card">
-                    <h3 className="text-lg font-semibold mb-4">📊 Distribución por Estatus de Uso</h3>
-                    <div className="h-64 flex items-center justify-center">
-                        <Doughnut data={bienesEstadoChartData} options={chartOptions} />
-                    </div>
-                </div>
-
-                {/* Pie Chart - Bienes por Origen */}
-                <div className="card">
-                    <h3 className="text-lg font-semibold mb-4">🏷️ Distribución por Tipo de Origen</h3>
-                    <div className="h-64 flex items-center justify-center">
-                        {stats.bienes?.porOrigen && stats.bienes.porOrigen.length > 0 ? (
-                            <Pie data={origenChartData} options={chartOptions} />
-                        ) : (
-                            <div className="text-gray-400 text-sm">Sin datos disponibles</div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Bar Chart - Procesos */}
-                <div className="card">
-                    <h3 className="text-lg font-semibold mb-4">📈 Transferencias y Desincorporaciones</h3>
-                    <div className="h-64">
-                        <Bar data={procesosChartData} options={barChartOptions} />
-                    </div>
-                </div>
-            </div>
-
-            {/* Detailed Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Bienes por Estado */}
-                <div className="card">
-                    <h3 className="text-lg font-semibold mb-4">📦 Bienes por Estatus de Uso</h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Activos</span>
-                            <span className="badge badge-success">{stats.bienes?.activos || 0}</span>
+                            {/* Chart Selection */}
+                            <section>
+                                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-3 flex items-center gap-2">
+                                    <BarChart3 className="w-4 h-4 text-purple-500" />
+                                    Gráficas (Máx. 2)
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {chartDefinitions.map(chart => (
+                                        <label key={chart.id} className={`
+                                            flex items-center p-3 rounded-lg border cursor-pointer transition-all
+                                            ${favoriteCharts.includes(chart.id)
+                                                ? 'border-purple-500 bg-purple-50 ring-1 ring-purple-500'
+                                                : 'border-gray-200 hover:bg-gray-50'}
+                                        `}>
+                                            <input
+                                                type="checkbox"
+                                                className="checkbox checkbox-secondary mr-3"
+                                                checked={favoriteCharts.includes(chart.id)}
+                                                onChange={() => {
+                                                    if (!favoriteCharts.includes(chart.id) && favoriteCharts.length >= 2) return;
+                                                    toggleChartFavorite(chart.id);
+                                                }}
+                                                disabled={!favoriteCharts.includes(chart.id) && favoriteCharts.length >= 2}
+                                            />
+                                            <span className="text-sm font-medium text-gray-700">{chart.title}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2 text-right">
+                                    {favoriteCharts.length}/2 seleccionados
+                                </p>
+                            </section>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Inactivos (Sin asignar)</span>
-                            <span className="badge" style={{ backgroundColor: '#9CA3AF', color: 'white' }}>{stats.bienes?.inactivos || 0}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">En Reparación</span>
-                            <span className="badge badge-info">{stats.bienes?.enReparacion || 0}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Desincorporados</span>
-                            <span className="badge badge-error">{stats.bienes?.desincorporados || 0}</span>
-                        </div>
-                        <div className="pt-3 border-t border-gray-200">
-                            <div className="flex justify-between items-center font-semibold">
-                                <span className="text-gray-900">Total</span>
-                                <span className="text-gray-900">{stats.bienes?.total || 0}</span>
-                            </div>
+
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                            <button
+                                onClick={() => setIsConfigOpen(false)}
+                                className="btn btn-primary"
+                            >
+                                Listo
+                            </button>
                         </div>
                     </div>
                 </div>
-
-                {/* KPIs Adicionales */}
-                <div className="card">
-                    <h3 className="text-lg font-semibold mb-4">📈 KPIs de Gestión SUDEBIP</h3>
-                    <div className="space-y-4">
-                        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-green-900">Tasa de Utilización</span>
-                                <span className="text-2xl font-bold text-green-700">{tasaUtilizacion}%</span>
-                            </div>
-                            <div className="w-full bg-green-200 rounded-full h-2">
-                                <div className="bg-green-600 h-2 rounded-full" style={{ width: `${tasaUtilizacion}%` }}></div>
-                            </div>
-                            <p className="text-xs text-green-600 mt-1">Bienes activos / Total de bienes</p>
-                        </div>
-
-                        <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-red-900">Tasa de Desincorporación</span>
-                                <span className="text-2xl font-bold text-red-700">{tasaDesincorporacion}%</span>
-                            </div>
-                            <div className="w-full bg-red-200 rounded-full h-2">
-                                <div className="bg-red-600 h-2 rounded-full" style={{ width: `${tasaDesincorporacion}%` }}></div>
-                            </div>
-                            <p className="text-xs text-red-600 mt-1">Bienes desincorporados / Total</p>
-                        </div>
-
-                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-blue-900">Bienes en Proceso</span>
-                                <span className="text-2xl font-bold text-blue-700">
-                                    {(stats.transferencias?.pendientes || 0) + (stats.desincorporaciones?.pendientes || 0)}
-                                </span>
-                            </div>
-                            <p className="text-xs text-blue-600 mt-1">Transferencias + Desincorporaciones pendientes</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Transferencias */}
-                <div className="card">
-                    <h3 className="text-lg font-semibold mb-4">🔄 Estado de Transferencias</h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Pendientes</span>
-                            <span className="badge badge-warning">{stats.transferencias?.pendientes || 0}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Aprobadas</span>
-                            <span className="badge badge-success">{stats.transferencias?.aprobadas || 0}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Ejecutadas</span>
-                            <span className="badge badge-info">{stats.transferencias?.ejecutadas || 0}</span>
-                        </div>
-                        <div className="pt-3 border-t border-gray-200">
-                            <div className="flex justify-between items-center font-semibold">
-                                <span className="text-gray-900">Total</span>
-                                <span className="text-gray-900">{stats.transferencias?.total || 0}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Desincorporaciones */}
-                <div className="card">
-                    <h3 className="text-lg font-semibold mb-4">🗑️ Estado de Desincorporaciones</h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Pendientes</span>
-                            <span className="badge badge-warning">{stats.desincorporaciones?.pendientes || 0}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Aprobadas</span>
-                            <span className="badge badge-success">{stats.desincorporaciones?.aprobadas || 0}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Ejecutadas</span>
-                            <span className="badge badge-info">{stats.desincorporaciones?.ejecutadas || 0}</span>
-                        </div>
-                        <div className="pt-3 border-t border-gray-200">
-                            <div className="flex justify-between items-center font-semibold">
-                                <span className="text-gray-900">Total</span>
-                                <span className="text-gray-900">{stats.desincorporaciones?.total || 0}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            )}
         </div>
     );
 };

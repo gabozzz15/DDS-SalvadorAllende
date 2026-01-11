@@ -14,6 +14,7 @@ import {
     LogOut,
     Menu,
     X,
+    SendHorizontal,
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -36,6 +37,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { name: 'Bienes', href: '/bienes', icon: Package },
         { name: 'Transferencias', href: '/transferencias', icon: ArrowRightLeft },
         { name: 'Desincorporaciones', href: '/desincorporaciones', icon: Trash2 },
+        { name: 'Asignaciones', href: '/asignaciones', icon: SendHorizontal },
         { name: 'Responsables', href: '/responsables', icon: UserCircle },
         { name: 'Alertas', href: '/alertas', icon: Bell },
         ...(isAdmin ? [

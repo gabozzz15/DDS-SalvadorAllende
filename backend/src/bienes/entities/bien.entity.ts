@@ -27,6 +27,9 @@ export enum CondicionFisica {
     REGULAR = 'REGULAR',
     MALO = 'MALO',
     OBSOLETO = 'OBSOLETO',
+    AVERIADO = 'AVERIADO',
+    DETERIORADO = 'DETERIORADO',
+    INSERVIBLE = 'INSERVIBLE',
 }
 
 @Entity('bienes')

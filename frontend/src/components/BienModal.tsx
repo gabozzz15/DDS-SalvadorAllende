@@ -93,7 +93,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                     fechaAdquisicion: '',
                     estatusUso: 'INACTIVO', // Locked
                     condicionFisica: 'EXCELENTE', // Locked
-                    idUnidadAdministrativa: '9', // Locked (Departamento de Bienes)
+                    idUnidadAdministrativa: '', // Set dynamically to UA-001
                     idResponsableUso: '',
                     idCategoriaEspecifica: '',
                     observacion: '',
@@ -133,6 +133,14 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 setResponsables(responsablesRes.data);
                 setCategorias(categoriasRes.data);
                 setTiposOrigen(tiposOrigenRes.data);
+
+                // Set default location to Almacén (UA-001) for new items
+                if (isOpen && mode === 'create' && creationMode === 'NEW') {
+                    const almacen = ubicacionesRes.data.find((u: any) => u.codigoUnidadSudebip === 'UA-001');
+                    if (almacen) {
+                        setFormData(prev => ({ ...prev, idUnidadAdministrativa: almacen.id.toString() }));
+                    }
+                }
             } catch (err) {
                 console.error('Error fetching data:', err);
                 Swal.fire('Error', 'No se pudieron cargar los datos auxiliares', 'error');
@@ -142,7 +150,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
         if (isOpen) {
             fetchData();
         }
-    }, [isOpen]);
+    }, [isOpen, mode, creationMode]);
 
     const [startTime, setStartTime] = useState<number | null>(null);
 
@@ -440,7 +448,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                                     </option>
                                 ))}
                             </select>
-                            {isNewMode && <p className="text-xs text-gray-500 mt-1">Bloqueado: Departamento de Bienes</p>}
+                            {isNewMode && <p className="text-xs text-gray-500 mt-1">Bloqueado: Almacén (UA-001)</p>}
                         </div>
 
                         {/* Responsable - DROPDOWN */}

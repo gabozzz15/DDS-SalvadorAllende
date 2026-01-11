@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Bienes from './pages/Bienes';
 import Transferencias from './pages/Transferencias';
 import Desincorporaciones from './pages/Desincorporaciones';
+import Asignaciones from './pages/Asignaciones';
 import Responsables from './pages/Responsables';
 import Usuarios from './pages/Usuarios';
 import Reportes from './pages/Reportes';
@@ -70,6 +71,17 @@ function App() {
                                 <ProtectedRoute>
                                     <Layout>
                                         <Desincorporaciones />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="/asignaciones"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <Asignaciones />
                                     </Layout>
                                 </ProtectedRoute>
                             }

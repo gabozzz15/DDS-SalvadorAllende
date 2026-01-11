@@ -30,7 +30,7 @@ export interface Bien {
     idResponsableUso: number;
     idTipoOrigen: number;
     estatusUso: 'ACTIVO' | 'INACTIVO' | 'EN_REPARACION' | 'DESINCORPORADO';
-    condicionFisica: 'EXCELENTE' | 'BUENO' | 'REGULAR' | 'MALO' | 'OBSOLETO';
+    condicionFisica: 'EXCELENTE' | 'BUENO' | 'REGULAR' | 'MALO' | 'OBSOLETO' | 'AVERIADO' | 'DETERIORADO' | 'INSERVIBLE';
     fechaAdquisicion?: string;
     fechaIngreso?: string;
     fechaInicioRegistro: string;
@@ -80,13 +80,23 @@ export interface Transferencia {
     responsableOrigenId: number;
     responsableDestinoId: number;
     motivo: string;
-    estatus: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
     fechaSolicitud: string;
     fechaAprobacion?: string;
     fechaEjecucion?: string;
+    estatus: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
+    tipoTransferencia: 'PERMANENTE' | 'TEMPORAL';
+    fechaRetornoEsperada?: string;
+    fechaDevolucion?: string;
+    observaciones?: string;
     solicitadoPor: number;
     aprobadoPor?: number;
-    observaciones?: string;
+    bien?: Bien;
+    ubicacionOrigen?: UnidadAdministrativa;
+    ubicacionDestino?: UnidadAdministrativa;
+    responsableOrigen?: Responsable;
+    responsableDestino?: Responsable;
+    solicitante?: User;
+    aprobador?: User;
 }
 
 export interface Desincorporacion {
