@@ -25,9 +25,25 @@ ChartJS.register(
 );
 
 const Dashboard: React.FC = () => {
+    // 1. Hooks (Always called)
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    // State for favorites - HOISTED
+    const [favoriteKpis, setFavoriteKpis] = useState<string[]>(() => {
+        const saved = localStorage.getItem('dashboard_favorite_kpis');
+        return saved ? JSON.parse(saved) : ['total_bienes', 'trans_pendientes', 'desinc_pendientes', 'trans_temporales'];
+    });
+
+    const [favoriteCharts, setFavoriteCharts] = useState<string[]>(() => {
+        const saved = localStorage.getItem('dashboard_favorite_charts');
+        return saved ? JSON.parse(saved) : ['chart_estado', 'chart_procesos'];
+    });
+
+    const [isConfigOpen, setIsConfigOpen] = useState(false);
+    const [showAllStats, setShowAllStats] = useState(false);
+
+    // Effects - HOISTED
     useEffect(() => {
         const fetchStats = async () => {
             try {
@@ -54,23 +70,15 @@ const Dashboard: React.FC = () => {
         fetchStats();
     }, []);
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-gray-500">Cargando estadísticas...</div>
-            </div>
-        );
-    }
+    useEffect(() => {
+        localStorage.setItem('dashboard_favorite_kpis', JSON.stringify(favoriteKpis));
+    }, [favoriteKpis]);
 
-    if (!stats) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-red-500">Error al cargar estadísticas</div>
-            </div>
-        );
-    }
+    useEffect(() => {
+        localStorage.setItem('dashboard_favorite_charts', JSON.stringify(favoriteCharts));
+    }, [favoriteCharts]);
 
-    // KPI Definitions
+    // Definition of Constants & Helpers (Safe to be here)
     const kpiDefinitions = [
         {
             id: 'total_bienes',
@@ -146,35 +154,13 @@ const Dashboard: React.FC = () => {
         }
     ];
 
-    // State for favorites
-    const [favoriteKpis, setFavoriteKpis] = useState<string[]>(() => {
-        const saved = localStorage.getItem('dashboard_favorite_kpis');
-        return saved ? JSON.parse(saved) : ['total_bienes', 'trans_pendientes', 'desinc_pendientes', 'trans_temporales'];
-    });
-
-    const [favoriteCharts, setFavoriteCharts] = useState<string[]>(() => {
-        const saved = localStorage.getItem('dashboard_favorite_charts');
-        return saved ? JSON.parse(saved) : ['chart_estado', 'chart_procesos'];
-    });
-
-    const [isConfigOpen, setIsConfigOpen] = useState(false);
-    const [showAllStats, setShowAllStats] = useState(false); // "Ver más" toggle
-
-    useEffect(() => {
-        localStorage.setItem('dashboard_favorite_kpis', JSON.stringify(favoriteKpis));
-    }, [favoriteKpis]);
-
-    useEffect(() => {
-        localStorage.setItem('dashboard_favorite_charts', JSON.stringify(favoriteCharts));
-    }, [favoriteCharts]);
-
     const toggleKpiFavorite = (id: string) => {
         setFavoriteKpis(prev => {
             if (prev.includes(id)) {
                 if (prev.length <= 1) return prev; // Prevent empty
                 return prev.filter(k => k !== id);
             } else {
-                if (prev.length >= 4) return prev; // Max 4 for main view validation (UI enforces this)
+                if (prev.length >= 4) return prev; // Max 4
                 return [...prev, id];
             }
         });
@@ -183,12 +169,29 @@ const Dashboard: React.FC = () => {
     const toggleChartFavorite = (id: string) => {
         setFavoriteCharts(prev => {
             if (prev.includes(id)) return prev.filter(c => c !== id);
-            if (prev.length >= 2) return prev; // Max 2 rule
+            if (prev.length >= 2) return prev; // Max 2
             return [...prev, id];
         });
     };
 
-    // Chart Data Definitions
+    // 2. Early Returns (Render Logic)
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-gray-500">Cargando estadísticas...</div>
+            </div>
+        );
+    }
+
+    if (!stats) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-red-500">Error al cargar estadísticas</div>
+            </div>
+        );
+    }
+
+    // 3. Computed Data (Dependent on stats)
 
     // Chart data for Bienes por Estado (Doughnut Chart)
     const bienesEstadoChartData = {
@@ -203,10 +206,10 @@ const Dashboard: React.FC = () => {
                     stats.bienes?.desincorporados || 0,
                 ],
                 backgroundColor: [
-                    'rgba(34, 197, 94, 0.8)',  // green - activos
-                    'rgba(156, 163, 175, 0.8)', // gray - inactivos
-                    'rgba(59, 130, 246, 0.8)',  // blue - en reparación
-                    'rgba(239, 68, 68, 0.8)',   // red - desincorporados
+                    'rgba(34, 197, 94, 0.8)',  // green
+                    'rgba(156, 163, 175, 0.8)', // gray
+                    'rgba(59, 130, 246, 0.8)',  // blue
+                    'rgba(239, 68, 68, 0.8)',   // red
                 ],
                 borderColor: [
                     'rgba(34, 197, 94, 1)',
