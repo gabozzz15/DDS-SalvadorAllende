@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { Bien } from '../types';
 import api from '../lib/api';
 import Swal from 'sweetalert2';
@@ -31,7 +31,13 @@ interface CategoriaSudebip {
     nivel: string;
 }
 
+interface TipoOrigen {
+    id: number;
+    nombre: string;
+}
+
 const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
+    const [creationMode, setCreationMode] = useState<'REGISTER' | 'NEW'>('REGISTER');
     const [formData, setFormData] = useState({
         codigoSudebip: '',
         codigoInterno: '',
@@ -46,7 +52,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
         idResponsableUso: '',
         idCategoriaEspecifica: '',
         observacion: '',
-        idTipoOrigen: 1,
+        idTipoOrigen: '',
     });
 
     const [loading, setLoading] = useState(false);
@@ -54,6 +60,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
     const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
     const [responsables, setResponsables] = useState<Responsable[]>([]);
     const [categorias, setCategorias] = useState<CategoriaSudebip[]>([]);
+    const [tiposOrigen, setTiposOrigen] = useState<TipoOrigen[]>([]);
 
     useEffect(() => {
         if (bien && (mode === 'view' || mode === 'edit')) {
@@ -71,39 +78,61 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 idResponsableUso: bien.idResponsableUso?.toString() || '',
                 idCategoriaEspecifica: bien.idCategoriaEspecifica?.toString() || '',
                 observacion: bien.observacion || '',
-                idTipoOrigen: bien.idTipoOrigen || 1,
+                idTipoOrigen: bien.idTipoOrigen?.toString() || '',
             });
         } else if (mode === 'create') {
-            setFormData({
-                codigoSudebip: '',
-                codigoInterno: '',
-                descripcion: '',
-                marca: '',
-                modelo: '',
-                serialBien: '',
-                fechaAdquisicion: '',
-                estatusUso: 'ACTIVO',
-                condicionFisica: 'BUENO',
-                idUnidadAdministrativa: '',
-                idResponsableUso: '',
-                idCategoriaEspecifica: '',
-                observacion: '',
-                idTipoOrigen: 1,
-            });
+            // Reset to defaults based on creationMode
+            if (creationMode === 'NEW') {
+                setFormData({
+                    codigoSudebip: '',
+                    codigoInterno: '',
+                    descripcion: '',
+                    marca: '',
+                    modelo: '',
+                    serialBien: '',
+                    fechaAdquisicion: '',
+                    estatusUso: 'INACTIVO', // Locked
+                    condicionFisica: 'EXCELENTE', // Locked
+                    idUnidadAdministrativa: '9', // Locked (Departamento de Bienes)
+                    idResponsableUso: '',
+                    idCategoriaEspecifica: '',
+                    observacion: '',
+                    idTipoOrigen: '',
+                });
+            } else {
+                setFormData({
+                    codigoSudebip: '',
+                    codigoInterno: '',
+                    descripcion: '',
+                    marca: '',
+                    modelo: '',
+                    serialBien: '',
+                    fechaAdquisicion: '',
+                    estatusUso: 'ACTIVO',
+                    condicionFisica: 'BUENO',
+                    idUnidadAdministrativa: '',
+                    idResponsableUso: '',
+                    idCategoriaEspecifica: '',
+                    observacion: '',
+                    idTipoOrigen: '',
+                });
+            }
         }
-    }, [bien, mode]);
+    }, [bien, mode, creationMode]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [ubicacionesRes, responsablesRes, categoriasRes] = await Promise.all([
+                const [ubicacionesRes, responsablesRes, categoriasRes, tiposOrigenRes] = await Promise.all([
                     api.get('/unidades-administrativas'),
                     api.get('/responsables'),
                     api.get('/categorias-sudebip'),
+                    api.get('/tipos-origen'),
                 ]);
                 setUbicaciones(ubicacionesRes.data);
                 setResponsables(responsablesRes.data);
                 setCategorias(categoriasRes.data);
+                setTiposOrigen(tiposOrigenRes.data);
             } catch (err) {
                 console.error('Error fetching data:', err);
                 Swal.fire('Error', 'No se pudieron cargar los datos auxiliares', 'error');
@@ -145,12 +174,12 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 idResponsableUso: parseInt(formData.idResponsableUso),
                 idCategoriaEspecifica: parseInt(formData.idCategoriaEspecifica),
                 observacion: formData.observacion,
-                idTipoOrigen: formData.idTipoOrigen,
+                idTipoOrigen: parseInt(formData.idTipoOrigen),
             };
 
             // Solo incluir codigoSudebip al crear
             if (mode === 'create') {
-                payload.codigoSudebip = formData.codigoSudebip;
+                // payload.codigoSudebip = formData.codigoSudebip; // REMOVED: Backend does not accept this field
                 if (startTime) {
                     const endTime = Date.now();
                     const durationSeconds = Math.round((endTime - startTime) / 1000);
@@ -191,16 +220,30 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
     if (!isOpen) return null;
 
     const isViewMode = mode === 'view';
+    const isNewMode = mode === 'create' && creationMode === 'NEW';
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">
-                        {mode === 'view' && 'Detalles del Bien'}
-                        {mode === 'create' && 'Nuevo Bien'}
-                        {mode === 'edit' && 'Editar Bien'}
-                    </h2>
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-xl font-semibold">
+                            {mode === 'view' && 'Detalles del Bien'}
+                            {mode === 'create' && (creationMode === 'NEW' ? 'Nuevo Bien (Ingreso)' : 'Registrar Bien Existente')}
+                            {mode === 'edit' && 'Editar Bien'}
+                        </h2>
+                        {mode === 'create' && (
+                            <button
+                                type="button"
+                                onClick={() => setCreationMode(creationMode === 'REGISTER' ? 'NEW' : 'REGISTER')}
+                                className={`btn btn-sm flex items-center gap-2 ${creationMode === 'NEW' ? 'btn-success' : 'btn-outline'}`}
+                                title={creationMode === 'NEW' ? 'Cambiar a Registro Manual' : 'Cambiar a Ingreso de Bien Nuevo'}
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                {creationMode === 'NEW' ? 'Modo: Bien Nuevo' : 'Modo: Registro'}
+                            </button>
+                        )}
+                    </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
                         <X className="w-6 h-6" />
                     </button>
@@ -221,14 +264,17 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                             </label>
                             <select
                                 value={formData.idTipoOrigen}
-                                onChange={(e) => setFormData({ ...formData, idTipoOrigen: parseInt(e.target.value) })}
+                                onChange={(e) => setFormData({ ...formData, idTipoOrigen: e.target.value })}
                                 className="input"
                                 required
                                 disabled={isViewMode}
                             >
-                                <option value="COMPRA">Compra</option>
-                                <option value="DONACION">Donación</option>
-                                <option value="PRESTAMO_FUNDASALUD">Préstamo Fundasalud</option>
+                                <option value="">Seleccione un origen</option>
+                                {tiposOrigen.map((tipo) => (
+                                    <option key={tipo.id} value={tipo.id}>
+                                        {tipo.nombre}
+                                    </option>
+                                ))}
                             </select>
                         </div>
 
@@ -346,13 +392,14 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                                 onChange={(e) => setFormData({ ...formData, estatusUso: e.target.value })}
                                 className="input"
                                 required
-                                disabled={isViewMode}
+                                disabled={isViewMode || isNewMode}
                             >
                                 <option value="ACTIVO">Activo</option>
                                 <option value="INACTIVO">Inactivo</option>
                                 <option value="EN_REPARACION">En Reparación</option>
                                 <option value="DESINCORPORADO">Desincorporado</option>
                             </select>
+                            {isNewMode && <p className="text-xs text-gray-500 mt-1">Bloqueado en modo Nuevo Bien</p>}
                         </div>
 
                         {/* Condición */}
@@ -363,7 +410,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                                 onChange={(e) => setFormData({ ...formData, condicionFisica: e.target.value })}
                                 className="input"
                                 required
-                                disabled={isViewMode}
+                                disabled={isViewMode || isNewMode}
                             >
                                 <option value="EXCELENTE">Excelente</option>
                                 <option value="BUENO">Bueno</option>
@@ -371,6 +418,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                                 <option value="MALO">Malo</option>
                                 <option value="OBSOLETO">Obsoleto</option>
                             </select>
+                            {isNewMode && <p className="text-xs text-gray-500 mt-1">Bloqueado en modo Nuevo Bien</p>}
                         </div>
 
                         {/* Ubicación - DROPDOWN */}
@@ -383,7 +431,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                                 onChange={(e) => setFormData({ ...formData, idUnidadAdministrativa: e.target.value })}
                                 className="input"
                                 required
-                                disabled={isViewMode}
+                                disabled={isViewMode || isNewMode}
                             >
                                 <option value="">Seleccione una ubicación</option>
                                 {ubicaciones.map((ubicacion) => (
@@ -392,6 +440,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                                     </option>
                                 ))}
                             </select>
+                            {isNewMode && <p className="text-xs text-gray-500 mt-1">Bloqueado: Departamento de Bienes</p>}
                         </div>
 
                         {/* Responsable - DROPDOWN */}

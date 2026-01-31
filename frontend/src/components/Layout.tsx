@@ -6,8 +6,11 @@ import {
     Package,
     ArrowRightLeft,
     Trash2,
+    UserCircle,
     Bell,
     Users,
+    FileText,
+    BarChart,
     LogOut,
     Menu,
     X,
@@ -33,8 +36,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { name: 'Bienes', href: '/bienes', icon: Package },
         { name: 'Transferencias', href: '/transferencias', icon: ArrowRightLeft },
         { name: 'Desincorporaciones', href: '/desincorporaciones', icon: Trash2 },
+        { name: 'Responsables', href: '/responsables', icon: UserCircle },
         { name: 'Alertas', href: '/alertas', icon: Bell },
-        ...(isAdmin ? [{ name: 'Usuarios', href: '/usuarios', icon: Users }] : []),
+        ...(isAdmin ? [
+            { name: 'Usuarios', href: '/usuarios', icon: Users },
+            { name: 'Reportes', href: '/reportes', icon: BarChart },
+            { name: 'Auditoría', href: '/auditoria', icon: FileText },
+        ] : []),
     ];
 
     const isActive = (path: string) => location.pathname === path;

@@ -38,8 +38,7 @@ export class Bien {
     @Index()
     codigoInterno: string;
 
-    @Column({ name: 'codigo_barras', length: 100, unique: true, nullable: true })
-    @Index()
+    @Column({ name: 'codigo_barras', type: 'text', nullable: true })
     codigoBarras: string;
 
     @Column({ type: 'text' })

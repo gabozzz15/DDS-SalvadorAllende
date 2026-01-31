@@ -106,7 +106,7 @@ CREATE TABLE tipos_origen (
 CREATE TABLE bienes (
     id_bien INT AUTO_INCREMENT PRIMARY KEY,
     codigo_interno VARCHAR(50) NOT NULL UNIQUE COMMENT 'Código único interno del bien (Anexo T.8 Nro 7)',
-    codigo_barras VARCHAR(100) UNIQUE COMMENT 'Código de barras Code128',
+    codigo_barras TEXT COMMENT 'Código de barras Code128 (Base64 PNG)',
     descripcion TEXT NOT NULL,
     serial_bien VARCHAR(100) COMMENT 'Serial del Bien (Anexo T.8 Nro 18)',
     marca VARCHAR(100),
@@ -139,7 +139,6 @@ CREATE TABLE bienes (
     FOREIGN KEY (id_tipo_origen) REFERENCES tipos_origen(id_tipo_origen),
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_codigo_interno (codigo_interno),
-    INDEX idx_codigo_barras (codigo_barras),
     INDEX idx_estatus (estatus_uso),
     INDEX idx_unidad (id_unidad_administrativa),
     INDEX idx_categoria (id_categoria_especifica)

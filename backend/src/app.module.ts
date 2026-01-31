@@ -18,6 +18,7 @@ import { AlertasModule } from './alertas/alertas.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuditoriaInterceptor } from './auditoria/auditoria.interceptor';
 import { ReportesModule } from './reportes/reportes.module';
+import { SubscribersModule } from './subscribers/subscribers.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ReportesModule } from './reportes/reportes.module';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        subscribers: [__dirname + '/**/*.subscriber{.ts,.js}'],
         synchronize: false, // IMPORTANTE: false en producción
         logging: configService.get('NODE_ENV') === 'development',
       }),
@@ -58,6 +60,7 @@ import { ReportesModule } from './reportes/reportes.module';
     AlertasModule,
     AuditoriaModule,
     ReportesModule,
+    SubscribersModule,
   ],
   controllers: [AppController],
   providers: [

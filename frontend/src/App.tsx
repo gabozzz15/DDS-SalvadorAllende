@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Bienes from './pages/Bienes';
 import Transferencias from './pages/Transferencias';
 import Desincorporaciones from './pages/Desincorporaciones';
+import Responsables from './pages/Responsables';
 import Usuarios from './pages/Usuarios';
 import Reportes from './pages/Reportes';
 import Auditoria from './pages/Auditoria';
@@ -69,6 +70,17 @@ function App() {
                                 <ProtectedRoute>
                                     <Layout>
                                         <Desincorporaciones />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="/responsables"
+                            element={
+                                <ProtectedRoute>
+                                    <Layout>
+                                        <Responsables />
                                     </Layout>
                                 </ProtectedRoute>
                             }
