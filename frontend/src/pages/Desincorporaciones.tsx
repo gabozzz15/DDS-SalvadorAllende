@@ -140,7 +140,7 @@ const Desincorporaciones = () => {
 
         if (result.isConfirmed) {
             try {
-                await api.post(`/desincorporaciones/${id}/aprobar`);
+                await api.patch(`/desincorporaciones/${id}/aprobar`);
                 fetchDesincorporaciones();
                 Swal.fire('Aprobada', 'La desincorporación ha sido aprobada.', 'success');
             } catch (error: any) {
@@ -169,7 +169,7 @@ const Desincorporaciones = () => {
 
         if (motivo) {
             try {
-                await api.post(`/desincorporaciones/${id}/rechazar`, { observacion: motivo });
+                await api.patch(`/desincorporaciones/${id}/rechazar`, { observaciones: motivo });
                 fetchDesincorporaciones();
                 Swal.fire('Rechazada', 'La desincorporación ha sido rechazada.', 'success');
             } catch (error: any) {
@@ -193,7 +193,7 @@ const Desincorporaciones = () => {
 
         if (result.isConfirmed) {
             try {
-                await api.post(`/desincorporaciones/${id}/execute`);
+                await api.patch(`/desincorporaciones/${id}/execute`);
                 fetchDesincorporaciones();
                 Swal.fire('Ejecutada', 'La desincorporación se ha ejecutado correctamente.', 'success');
             } catch (error: any) {

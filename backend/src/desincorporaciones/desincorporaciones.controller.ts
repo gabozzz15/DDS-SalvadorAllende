@@ -60,4 +60,10 @@ export class DesincorporacionesController {
     ) {
         return this.desincorporacionesService.rechazar(+id, req.user.id, observaciones);
     }
+
+    @Patch(':id/execute')
+    @Roles(UserRole.ADMIN)
+    execute(@Param('id') id: string, @Request() req) {
+        return this.desincorporacionesService.execute(+id, req.user.id);
+    }
 }

@@ -83,7 +83,15 @@ export class DesincorporacionesService {
         desincorporacion.fechaAprobacion = new Date();
         desincorporacion.aprobadoPor = userId;
 
-        const savedDesincorporacion = await this.desincorporacionesRepository.save(desincorporacion);
+        return this.desincorporacionesRepository.save(desincorporacion);
+    }
+
+    async execute(id: number, userId: number): Promise<Desincorporacion> {
+        const desincorporacion = await this.findOne(id);
+
+        if (desincorporacion.estatus !== EstatusDesincorporacion.APROBADA) {
+            throw new BadRequestException('Solo se pueden ejecutar desincorporaciones aprobadas');
+        }
 
         // Actualizar el estado del bien a DESINCORPORADO
         await this.bienesService.update(desincorporacion.idBien, {
