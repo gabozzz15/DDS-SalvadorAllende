@@ -8,7 +8,10 @@ import Dashboard from './pages/Dashboard';
 import Bienes from './pages/Bienes';
 import Transferencias from './pages/Transferencias';
 import Desincorporaciones from './pages/Desincorporaciones';
+<<<<<<< HEAD
 import Asignaciones from './pages/Asignaciones';
+=======
+>>>>>>> ca424ea38c59b96b95880a6defa06896a7349021
 import Responsables from './pages/Responsables';
 import Usuarios from './pages/Usuarios';
 import Reportes from './pages/Reportes';
@@ -77,6 +80,7 @@ function App() {
                         />
 
                         <Route
+<<<<<<< HEAD
                             path="/asignaciones"
                             element={
                                 <ProtectedRoute>
@@ -88,6 +92,8 @@ function App() {
                         />
 
                         <Route
+=======
+>>>>>>> ca424ea38c59b96b95880a6defa06896a7349021
                             path="/responsables"
                             element={
                                 <ProtectedRoute>

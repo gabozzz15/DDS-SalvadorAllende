@@ -19,7 +19,10 @@ import { AuditoriaModule } from './auditoria/auditoria.module';
 import { AuditoriaInterceptor } from './auditoria/auditoria.interceptor';
 import { ReportesModule } from './reportes/reportes.module';
 import { SubscribersModule } from './subscribers/subscribers.module';
+<<<<<<< HEAD
 import { AsignacionesModule } from './asignaciones/asignaciones.module';
+=======
+>>>>>>> ca424ea38c59b96b95880a6defa06896a7349021
 
 @Module({
   imports: [
@@ -62,7 +65,10 @@ import { AsignacionesModule } from './asignaciones/asignaciones.module';
     AuditoriaModule,
     ReportesModule,
     SubscribersModule,
+<<<<<<< HEAD
     AsignacionesModule,
+=======
+>>>>>>> ca424ea38c59b96b95880a6defa06896a7349021
   ],
   controllers: [AppController],
   providers: [

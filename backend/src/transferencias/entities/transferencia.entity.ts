@@ -19,11 +19,14 @@ export enum EstatusTransferencia {
     EJECUTADA = 'EJECUTADA',
 }
 
+<<<<<<< HEAD
 export enum TipoTransferencia {
     PERMANENTE = 'PERMANENTE',
     TEMPORAL = 'TEMPORAL',
 }
 
+=======
+>>>>>>> ca424ea38c59b96b95880a6defa06896a7349021
 @Entity('transferencias')
 export class Transferencia {
     @PrimaryGeneratedColumn({ name: 'id_solicitud' })
@@ -88,6 +91,7 @@ export class Transferencia {
     @Index()
     estatus: EstatusTransferencia;
 
+<<<<<<< HEAD
     @Column({
         name: 'tipo_transferencia',
         type: 'enum',
@@ -103,6 +107,8 @@ export class Transferencia {
     @Column({ name: 'fecha_devolucion', type: 'timestamp', nullable: true })
     fechaDevolucion: Date;
 
+=======
+>>>>>>> ca424ea38c59b96b95880a6defa06896a7349021
     @Column({ type: 'text', nullable: true })
     observaciones: string;
 
