@@ -80,13 +80,23 @@ export interface Transferencia {
     responsableOrigenId: number;
     responsableDestinoId: number;
     motivo: string;
-    estatus: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
     fechaSolicitud: string;
     fechaAprobacion?: string;
     fechaEjecucion?: string;
+    estatus: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
+    tipoTransferencia: 'PERMANENTE' | 'TEMPORAL';
+    fechaRetornoEsperada?: string;
+    fechaDevolucion?: string;
+    observaciones?: string;
     solicitadoPor: number;
     aprobadoPor?: number;
-    observaciones?: string;
+    bien?: Bien;
+    ubicacionOrigen?: UnidadAdministrativa;
+    ubicacionDestino?: UnidadAdministrativa;
+    responsableOrigen?: Responsable;
+    responsableDestino?: Responsable;
+    solicitante?: User;
+    aprobador?: User;
 }
 
 export interface Desincorporacion {
