@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, X, Check, Shield, User as UserIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Shield, User as UserIcon } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import Swal from 'sweetalert2';
 
 interface User {
     id: number;
@@ -41,6 +42,7 @@ const Usuarios = () => {
             setUsers(response.data);
         } catch (error) {
             console.error('Error fetching users:', error);
+            Swal.fire('Error', 'No se pudieron cargar los usuarios', 'error');
         } finally {
             setLoading(false);
         }
@@ -52,7 +54,7 @@ const Usuarios = () => {
             nombreCompleto: '',
             email: '',
             password: '',
-            role: 'USER',
+            role: 'USER' as any,
             activo: true,
         });
         setModalMode('create');
@@ -75,18 +77,30 @@ const Usuarios = () => {
 
     const handleDelete = async (id: number) => {
         if (id === currentUser?.id) {
-            alert('No puedes eliminar tu propio usuario');
+            Swal.fire('Acción no permitida', 'No puedes eliminar tu propio usuario', 'warning');
             return;
         }
 
-        if (!window.confirm('¿Está seguro de eliminar este usuario? Esta acción no se puede deshacer.')) return;
+        const result = await Swal.fire({
+            title: '¿Eliminar usuario?',
+            text: "Esta acción no se puede deshacer.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
 
-        try {
-            await api.delete(`/users/${id}`);
-            fetchUsers();
-        } catch (error: any) {
-            console.error('Error deleting user:', error);
-            alert(error.response?.data?.message || 'Error al eliminar el usuario');
+        if (result.isConfirmed) {
+            try {
+                await api.delete(`/users/${id}`);
+                fetchUsers();
+                Swal.fire('Eliminado', 'El usuario ha sido eliminado.', 'success');
+            } catch (error: any) {
+                console.error('Error deleting user:', error);
+                Swal.fire('Error', error.response?.data?.message || 'Error al eliminar el usuario', 'error');
+            }
         }
     };
 
@@ -107,19 +121,21 @@ const Usuarios = () => {
 
             if (modalMode === 'create') {
                 if (!formData.password) {
-                    alert('La contraseña es obligatoria para nuevos usuarios');
+                    Swal.fire('Error', 'La contraseña es obligatoria para nuevos usuarios', 'error');
                     return;
                 }
                 await api.post('/users', payload);
+                Swal.fire('Creado', 'Usuario creado exitosamente', 'success');
             } else if (modalMode === 'edit' && selectedUser) {
                 await api.patch(`/users/${selectedUser.id}`, payload);
+                Swal.fire('Actualizado', 'Usuario actualizado exitosamente', 'success');
             }
 
             setModalOpen(false);
             fetchUsers();
         } catch (error: any) {
             console.error('Error saving user:', error);
-            alert(error.response?.data?.message || 'Error al guardar el usuario');
+            Swal.fire('Error', error.response?.data?.message || 'Error al guardar el usuario', 'error');
         }
     };
 
@@ -189,14 +205,12 @@ const Usuarios = () => {
                                         <div className="text-sm text-gray-500">{user.email}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
-                                            }`}>
+                                        <span className={`badge ${user.role === 'ADMIN' ? 'badge-primary' : 'badge-secondary'}`}>
                                             {user.role}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                            }`}>
+                                        <span className={`badge ${user.activo ? 'badge-success' : 'badge-danger'}`}>
                                             {user.activo ? 'Activo' : 'Inactivo'}
                                         </span>
                                     </td>
@@ -209,15 +223,13 @@ const Usuarios = () => {
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
-                                            {user.id !== currentUser?.id && (
-                                                <button
-                                                    onClick={() => handleDelete(user.id)}
-                                                    className="text-red-600 hover:text-red-900"
-                                                    title="Eliminar"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={() => handleDelete(user.id)}
+                                                className="text-red-600 hover:text-red-900"
+                                                title="Eliminar"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -243,7 +255,7 @@ const Usuarios = () => {
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Usuario *
+                                    Usuario
                                 </label>
                                 <input
                                     type="text"
@@ -256,7 +268,7 @@ const Usuarios = () => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Nombre Completo *
+                                    Nombre Completo
                                 </label>
                                 <input
                                     type="text"
@@ -269,7 +281,7 @@ const Usuarios = () => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Email *
+                                    Email
                                 </label>
                                 <input
                                     type="email"
@@ -282,7 +294,7 @@ const Usuarios = () => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Contraseña {modalMode === 'edit' && '(Dejar en blanco para mantener)'}
+                                    Contraseña {modalMode === 'edit' && '(Dejar en blanco para no cambiar)'}
                                 </label>
                                 <input
                                     type="password"
@@ -290,17 +302,16 @@ const Usuarios = () => {
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     className="input"
                                     required={modalMode === 'create'}
-                                    minLength={6}
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Rol *
+                                    Rol
                                 </label>
                                 <select
                                     value={formData.role}
-                                    onChange={(e) => setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'USER' })}
+                                    onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
                                     className="input"
                                 >
                                     <option value="USER">Usuario</option>
@@ -314,14 +325,14 @@ const Usuarios = () => {
                                     id="activo"
                                     checked={formData.activo}
                                     onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                                 />
                                 <label htmlFor="activo" className="ml-2 block text-sm text-gray-900">
                                     Usuario Activo
                                 </label>
                             </div>
 
-                            <div className="mt-6 flex justify-end gap-3">
+                            <div className="flex justify-end gap-3 mt-6">
                                 <button
                                     type="button"
                                     onClick={() => setModalOpen(false)}
@@ -330,7 +341,7 @@ const Usuarios = () => {
                                     Cancelar
                                 </button>
                                 <button type="submit" className="btn btn-primary">
-                                    Guardar
+                                    {modalMode === 'create' ? 'Crear' : 'Guardar'}
                                 </button>
                             </div>
                         </form>

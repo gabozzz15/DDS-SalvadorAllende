@@ -4,6 +4,7 @@ import { Bien } from '../types';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import BienModal from '../components/BienModal';
+import Swal from 'sweetalert2';
 
 const Bienes = () => {
     const [bienes, setBienes] = useState<Bien[]>([]);
@@ -31,6 +32,7 @@ const Bienes = () => {
             setBienes(response.data);
         } catch (error) {
             console.error('Error fetching bienes:', error);
+            Swal.fire('Error', 'No se pudieron cargar los bienes', 'error');
         } finally {
             setLoading(false);
         }
@@ -59,16 +61,26 @@ const Bienes = () => {
     };
 
     const handleDelete = async (bien: Bien) => {
-        if (!window.confirm(`¿Está seguro de eliminar el bien "${bien.descripcion}"?`)) {
-            return;
-        }
+        const result = await Swal.fire({
+            title: `¿Eliminar bien "${bien.descripcion}"?`,
+            text: "Esta acción no se puede deshacer.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
 
-        try {
-            await api.delete(`/bienes/${bien.id}`);
-            fetchBienes();
-        } catch (error) {
-            console.error('Error deleting bien:', error);
-            alert('Error al eliminar el bien');
+        if (result.isConfirmed) {
+            try {
+                await api.delete(`/bienes/${bien.id}`);
+                fetchBienes();
+                Swal.fire('Eliminado', 'El bien ha sido eliminado.', 'success');
+            } catch (error) {
+                console.error('Error deleting bien:', error);
+                Swal.fire('Error', 'Error al eliminar el bien', 'error');
+            }
         }
     };
 
@@ -198,9 +210,7 @@ const Bienes = () => {
                                             <div className="text-sm font-medium text-gray-900">
                                                 {bien.codigoInterno}
                                             </div>
-                                            <div className="text-xs text-gray-500">
-                                                {bien.codigoSudebip}
-                                            </div>
+
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-sm text-gray-900">{bien.descripcion}</div>

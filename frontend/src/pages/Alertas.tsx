@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Bell, Check, Trash2, Filter, AlertTriangle, Info, AlertCircle } from 'lucide-react';
+import { Bell, Check, Trash2, AlertTriangle, Info, AlertCircle } from 'lucide-react';
 import api from '../lib/api';
+import Swal from 'sweetalert2';
 
 interface Alerta {
     id: number;
@@ -56,18 +57,49 @@ const Alertas = () => {
         try {
             await api.post('/alertas/mark-all-read');
             fetchAlertas();
+            Swal.fire({
+                title: 'Alertas actualizadas',
+                text: 'Todas las alertas han sido marcadas como leídas',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
         } catch (error) {
             console.error('Error marking all as read:', error);
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm('¿Eliminar esta alerta?')) return;
-        try {
-            await api.delete(`/alertas/${id}`);
-            setAlertas(alertas.filter(a => a.id !== id));
-        } catch (error) {
-            console.error('Error deleting alerta:', error);
+        const result = await Swal.fire({
+            title: '¿Eliminar alerta?',
+            text: "Esta acción no se puede deshacer.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await api.delete(`/alertas/${id}`);
+                setAlertas(alertas.filter(a => a.id !== id));
+                Swal.fire({
+                    title: 'Eliminada',
+                    text: 'La alerta ha sido eliminada',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            } catch (error) {
+                console.error('Error deleting alerta:', error);
+                Swal.fire('Error', 'No se pudo eliminar la alerta', 'error');
+            }
         }
     };
 

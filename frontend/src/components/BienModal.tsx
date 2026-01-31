@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Bien } from '../types';
 import api from '../lib/api';
+import Swal from 'sweetalert2';
 
 interface BienModalProps {
     bien: Bien | null;
@@ -105,6 +106,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 setCategorias(categoriasRes.data);
             } catch (err) {
                 console.error('Error fetching data:', err);
+                Swal.fire('Error', 'No se pudieron cargar los datos auxiliares', 'error');
             }
         };
 
@@ -158,8 +160,10 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
 
             if (mode === 'create') {
                 await api.post('/bienes', payload);
+                Swal.fire('Creado', 'El bien ha sido registrado exitosamente.', 'success');
             } else if (mode === 'edit' && bien) {
                 await api.patch(`/bienes/${bien.id}`, payload);
+                Swal.fire('Actualizado', 'El bien ha sido actualizado exitosamente.', 'success');
             }
 
             onSave();
@@ -171,10 +175,13 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
             if (Array.isArray(errorMessage)) {
                 // Validation errors from class-validator
                 setError(errorMessage.join(', '));
+                Swal.fire('Error de Validación', errorMessage.join('\n'), 'error');
             } else if (typeof errorMessage === 'string') {
                 setError(errorMessage);
+                Swal.fire('Error', errorMessage, 'error');
             } else {
                 setError('Error al guardar el bien. Por favor verifica todos los campos.');
+                Swal.fire('Error', 'Error al guardar el bien. Por favor verifica todos los campos.', 'error');
             }
         } finally {
             setLoading(false);

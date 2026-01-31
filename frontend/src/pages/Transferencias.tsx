@@ -3,8 +3,7 @@ import { Plus, Eye, Check, X } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Transferencia, Bien, UnidadAdministrativa as Ubicacion, Responsable } from '../types';
-
-
+import Swal from 'sweetalert2';
 
 const Transferencias = () => {
     const [transferencias, setTransferencias] = useState<Transferencia[]>([]);
@@ -47,6 +46,7 @@ const Transferencias = () => {
             setTransferencias(response.data);
         } catch (error) {
             console.error('Error fetching transferencias:', error);
+            Swal.fire('Error', 'No se pudieron cargar las transferencias', 'error');
         } finally {
             setLoading(false);
         }
@@ -64,6 +64,7 @@ const Transferencias = () => {
             setResponsables(responsablesRes.data);
         } catch (error) {
             console.error('Error fetching dropdown data:', error);
+            Swal.fire('Error', 'Error al cargar datos auxiliares', 'error');
         }
     };
 
@@ -99,36 +100,66 @@ const Transferencias = () => {
             await api.post('/transferencias', payload);
             setModalOpen(false);
             fetchTransferencias();
+            Swal.fire('Éxito', 'Transferencia creada correctamente', 'success');
         } catch (error: any) {
             console.error('Error creating transferencia:', error);
-            alert(error.response?.data?.message || 'Error al crear la transferencia');
+            Swal.fire('Error', error.response?.data?.message || 'Error al crear la transferencia', 'error');
         }
     };
 
     const handleAprobar = async (id: number) => {
-        if (!window.confirm('¿Está seguro de aprobar esta transferencia? El bien se actualizará automáticamente.')) return;
+        const result = await Swal.fire({
+            title: '¿Aprobar transferencia?',
+            text: "El bien se actualizará automáticamente a la nueva ubicación y responsable.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, aprobar',
+            cancelButtonText: 'Cancelar'
+        });
 
-        try {
-            await api.patch(`/transferencias/${id}/aprobar`);
-            fetchTransferencias();
-        } catch (error: any) {
-            console.error('Error aprobando transferencia:', error);
-            alert(error.response?.data?.message || 'Error al aprobar la transferencia');
+        if (result.isConfirmed) {
+            try {
+                await api.patch(`/transferencias/${id}/aprobar`);
+                fetchTransferencias();
+                Swal.fire('Aprobada', 'La transferencia ha sido aprobada.', 'success');
+            } catch (error: any) {
+                console.error('Error aprobando transferencia:', error);
+                Swal.fire('Error', error.response?.data?.message || 'Error al aprobar la transferencia', 'error');
+            }
         }
     };
 
     const handleRechazar = async (id: number) => {
-        if (!window.confirm('¿Está seguro de rechazar esta transferencia?')) return;
+        const { value: observaciones } = await Swal.fire({
+            title: 'Rechazar transferencia',
+            input: 'textarea',
+            inputLabel: 'Motivo del rechazo',
+            inputPlaceholder: 'Ingrese el motivo...',
+            inputAttributes: {
+                'aria-label': 'Ingrese el motivo del rechazo'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Rechazar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d33',
+            inputValidator: (value) => {
+                if (!value) {
+                    return '¡Debe ingresar un motivo!';
+                }
+            }
+        });
 
-        try {
-            const observaciones = prompt('Ingrese motivo del rechazo:');
-            if (observaciones === null) return;
-
-            await api.patch(`/transferencias/${id}/rechazar`, { observaciones });
-            fetchTransferencias();
-        } catch (error: any) {
-            console.error('Error rechazando transferencia:', error);
-            alert(error.response?.data?.message || 'Error al rechazar la transferencia');
+        if (observaciones) {
+            try {
+                await api.patch(`/transferencias/${id}/rechazar`, { observaciones });
+                fetchTransferencias();
+                Swal.fire('Rechazada', 'La transferencia ha sido rechazada.', 'success');
+            } catch (error: any) {
+                console.error('Error rechazando transferencia:', error);
+                Swal.fire('Error', error.response?.data?.message || 'Error al rechazar la transferencia', 'error');
+            }
         }
     };
 

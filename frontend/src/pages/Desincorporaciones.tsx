@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Eye, Check, X, Play } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import Swal from 'sweetalert2';
 
 interface Desincorporacion {
     id: number;
@@ -10,7 +11,7 @@ interface Desincorporacion {
     descripcionMotivo: string;
     valorResidual?: number;
     documentoRespaldo?: string;
-    estado: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
+    estatus: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
     fechaSolicitud: string;
     fechaAprobacion?: string;
     fechaEjecucion?: string;
@@ -57,13 +58,14 @@ const Desincorporaciones = () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
-            if (estadoFilter) params.append('estatusUso', estadoFilter);
+            if (estadoFilter) params.append('estatus', estadoFilter);
             if (bienFilter) params.append('idBien', bienFilter);
 
             const response = await api.get(`/desincorporaciones?${params.toString()}`);
             setDesincorporaciones(response.data);
         } catch (error) {
             console.error('Error fetching desincorporaciones:', error);
+            Swal.fire('Error', 'No se pudieron cargar las desincorporaciones', 'error');
         } finally {
             setLoading(false);
         }
@@ -75,6 +77,7 @@ const Desincorporaciones = () => {
             setBienes(response.data);
         } catch (error) {
             console.error('Error fetching dropdown data:', error);
+            Swal.fire('Error', 'Error al cargar datos auxiliares', 'error');
         }
     };
 
@@ -116,57 +119,98 @@ const Desincorporaciones = () => {
             await api.post('/desincorporaciones', payload);
             setModalOpen(false);
             fetchDesincorporaciones();
+            Swal.fire('Éxito', 'Solicitud de desincorporación creada', 'success');
         } catch (error: any) {
             console.error('Error creating desincorporacion:', error);
-            alert(error.response?.data?.message || 'Error al crear la desincorporación');
+            Swal.fire('Error', error.response?.data?.message || 'Error al crear la desincorporación', 'error');
         }
     };
 
     const handleAprobar = async (id: number) => {
-        if (!window.confirm('¿Está seguro de aprobar esta desincorporación?')) return;
+        const result = await Swal.fire({
+            title: '¿Aprobar desincorporación?',
+            text: "La solicitud pasará a estado APROBADA.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, aprobar',
+            cancelButtonText: 'Cancelar'
+        });
 
-        try {
-            await api.post(`/desincorporaciones/${id}/aprobar`);
-            fetchDesincorporaciones();
-        } catch (error: any) {
-            console.error('Error aprobando desincorporacion:', error);
-            alert(error.response?.data?.message || 'Error al aprobar la desincorporación');
+        if (result.isConfirmed) {
+            try {
+                await api.post(`/desincorporaciones/${id}/aprobar`);
+                fetchDesincorporaciones();
+                Swal.fire('Aprobada', 'La desincorporación ha sido aprobada.', 'success');
+            } catch (error: any) {
+                console.error('Error aprobando desincorporacion:', error);
+                Swal.fire('Error', error.response?.data?.message || 'Error al aprobar la desincorporación', 'error');
+            }
         }
     };
 
     const handleRechazar = async (id: number) => {
-        const motivo = window.prompt('Ingrese el motivo del rechazo:');
-        if (motivo === null) return;
+        const { value: motivo } = await Swal.fire({
+            title: 'Rechazar desincorporación',
+            input: 'textarea',
+            inputLabel: 'Motivo del rechazo',
+            inputPlaceholder: 'Ingrese el motivo...',
+            showCancelButton: true,
+            confirmButtonText: 'Rechazar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d33',
+            inputValidator: (value) => {
+                if (!value) {
+                    return '¡Debe ingresar un motivo!';
+                }
+            }
+        });
 
-        try {
-            await api.post(`/desincorporaciones/${id}/rechazar`, { observacion: motivo });
-            fetchDesincorporaciones();
-        } catch (error: any) {
-            console.error('Error rechazando desincorporacion:', error);
-            alert(error.response?.data?.message || 'Error al rechazar la desincorporación');
+        if (motivo) {
+            try {
+                await api.post(`/desincorporaciones/${id}/rechazar`, { observacion: motivo });
+                fetchDesincorporaciones();
+                Swal.fire('Rechazada', 'La desincorporación ha sido rechazada.', 'success');
+            } catch (error: any) {
+                console.error('Error rechazando desincorporacion:', error);
+                Swal.fire('Error', error.response?.data?.message || 'Error al rechazar la desincorporación', 'error');
+            }
         }
     };
 
     const handleEjecutar = async (id: number) => {
-        if (!window.confirm('¿Está seguro de ejecutar esta desincorporación? El bien cambiará a estado DESINCORPORADO permanentemente.')) return;
+        const result = await Swal.fire({
+            title: '¿Ejecutar desincorporación?',
+            text: "El bien cambiará a estado DESINCORPORADO permanentemente. Esta acción es irreversible.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, ejecutar',
+            cancelButtonText: 'Cancelar'
+        });
 
-        try {
-            await api.post(`/desincorporaciones/${id}/execute`);
-            fetchDesincorporaciones();
-        } catch (error: any) {
-            console.error('Error ejecutando desincorporacion:', error);
-            alert(error.response?.data?.message || 'Error al ejecutar la desincorporación');
+        if (result.isConfirmed) {
+            try {
+                await api.post(`/desincorporaciones/${id}/execute`);
+                fetchDesincorporaciones();
+                Swal.fire('Ejecutada', 'La desincorporación se ha ejecutado correctamente.', 'success');
+            } catch (error: any) {
+                console.error('Error ejecutando desincorporacion:', error);
+                Swal.fire('Error', error.response?.data?.message || 'Error al ejecutar la desincorporación', 'error');
+            }
         }
     };
 
-    const getEstadoBadge = (estado: string) => {
+    const getEstadoBadge = (estatus: string) => {
         const badges = {
             PENDIENTE: 'badge-warning',
             APROBADA: 'badge-info',
             RECHAZADA: 'badge-danger',
             EJECUTADA: 'badge-success',
         };
-        return badges[estado as keyof typeof badges] || 'badge-secondary';
+        return badges[estatus as keyof typeof badges] || 'badge-secondary';
     };
 
     if (loading) {
@@ -276,8 +320,8 @@ const Desincorporaciones = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`badge ${getEstadoBadge(item.estatusUso)}`}>
-                                                {item.estatusUso}
+                                            <span className={`badge ${getEstadoBadge(item.estatus)}`}>
+                                                {item.estatus}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -292,7 +336,7 @@ const Desincorporaciones = () => {
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
-                                                {isAdmin && item.estatusUso === 'PENDIENTE' && (
+                                                {isAdmin && item.estatus === 'PENDIENTE' && (
                                                     <>
                                                         <button
                                                             onClick={() => handleAprobar(item.id)}
@@ -310,7 +354,7 @@ const Desincorporaciones = () => {
                                                         </button>
                                                     </>
                                                 )}
-                                                {isAdmin && item.estatusUso === 'APROBADA' && (
+                                                {isAdmin && item.estatus === 'APROBADA' && (
                                                     <button
                                                         onClick={() => handleEjecutar(item.id)}
                                                         className="text-purple-600 hover:text-purple-900"
@@ -454,8 +498,8 @@ const Desincorporaciones = () => {
                                         <div>
                                             <label className="text-sm font-medium text-gray-500">Estado</label>
                                             <p className="mt-1">
-                                                <span className={`badge ${getEstadoBadge(selectedDesincorporacion!.estado)}`}>
-                                                    {selectedDesincorporacion!.estado}
+                                                <span className={`badge ${getEstadoBadge(selectedDesincorporacion!.estatus)}`}>
+                                                    {selectedDesincorporacion!.estatus}
                                                 </span>
                                             </p>
                                         </div>

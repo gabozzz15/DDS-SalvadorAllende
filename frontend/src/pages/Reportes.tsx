@@ -1,5 +1,6 @@
 import { FileText, FileSpreadsheet, Download } from 'lucide-react';
 import api from '../lib/api';
+import Swal from 'sweetalert2';
 
 const Reportes = () => {
     const handleDownload = async (type: 'pdf' | 'excel') => {
@@ -15,9 +16,19 @@ const Reportes = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
+
+            Swal.fire({
+                title: 'Descarga iniciada',
+                text: `El reporte ${type.toUpperCase()} se ha generado correctamente.`,
+                icon: 'success',
+                timer: 3000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
         } catch (error) {
             console.error('Error downloading report:', error);
-            alert('Error al descargar el reporte');
+            Swal.fire('Error', 'Error al descargar el reporte', 'error');
         }
     };
 
