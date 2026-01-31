@@ -7,8 +7,9 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ResponsablesModule } from './responsables/responsables.module';
-import { UbicacionesModule } from './ubicaciones/ubicaciones.module';
+import { UnidadesAdministrativasModule } from './unidades-administrativas/unidades-administrativas.module';
 import { CategoriasSudebipModule } from './categorias-sudebip/categorias-sudebip.module';
+import { TiposOrigenModule } from './tipos-origen/tipos-origen.module';
 import { BienesModule } from './bienes/bienes.module';
 import { TransferenciasModule } from './transferencias/transferencias.module';
 import { DesincorporacionesModule } from './desincorporaciones/desincorporaciones.module';
@@ -47,7 +48,8 @@ import { ReportesModule } from './reportes/reportes.module';
     AuthModule,
     UsersModule,
     ResponsablesModule,
-    UbicacionesModule,
+    UnidadesAdministrativasModule,
+    TiposOrigenModule,
     CategoriasSudebipModule,
     BienesModule,
     TransferenciasModule,

@@ -4,25 +4,29 @@ import { Repository } from 'typeorm';
 import { Responsable } from './entities/responsable.entity';
 import { CreateResponsableDto } from './dto/create-responsable.dto';
 import { UpdateResponsableDto } from './dto/update-responsable.dto';
+import { UnidadesAdministrativasService } from '../unidades-administrativas/unidades-administrativas.service';
 
 @Injectable()
 export class ResponsablesService {
     constructor(
         @InjectRepository(Responsable)
         private responsablesRepository: Repository<Responsable>,
+        private unidadesAdministrativasService: UnidadesAdministrativasService,
     ) { }
 
     async create(createResponsableDto: CreateResponsableDto): Promise<Responsable> {
-        // Verificar si la cédula ya existe
-        const existingResponsable = await this.responsablesRepository.findOne({
+        // Verificar que la cédula no exista
+        const existing = await this.responsablesRepository.findOne({
             where: { cedula: createResponsableDto.cedula },
         });
 
-        if (existingResponsable) {
+        if (existing) {
             throw new ConflictException('Ya existe un responsable con esta cédula');
         }
 
-        // Crear el responsable
+        // Validar que la unidad administrativa exista
+        await this.unidadesAdministrativasService.findOne(createResponsableDto.idUnidadAdscripcion);
+
         const responsable = this.responsablesRepository.create(createResponsableDto);
 
         // Si acepta responsabilidad, establecer fecha de aceptación
@@ -38,7 +42,7 @@ export class ResponsablesService {
 
         return this.responsablesRepository.find({
             where,
-            relations: ['departamento'],
+            relations: ['unidadAdscripcion'],
             order: { apellidos: 'ASC', nombres: 'ASC' },
         });
     }
@@ -46,7 +50,7 @@ export class ResponsablesService {
     async findOne(id: number): Promise<Responsable> {
         const responsable = await this.responsablesRepository.findOne({
             where: { id },
-            relations: ['departamento'],
+            relations: ['unidadAdscripcion'],
         });
 
         if (!responsable) {
@@ -59,7 +63,7 @@ export class ResponsablesService {
     async findByCedula(cedula: string): Promise<Responsable | null> {
         return this.responsablesRepository.findOne({
             where: { cedula },
-            relations: ['departamento'],
+            relations: ['unidadAdscripcion'],
         });
     }
 
@@ -74,6 +78,11 @@ export class ResponsablesService {
             }
         }
 
+        // Si se actualiza la unidad administrativa, validar que exista
+        if (updateResponsableDto.idUnidadAdscripcion) {
+            await this.unidadesAdministrativasService.findOne(updateResponsableDto.idUnidadAdscripcion);
+        }
+
         // Si cambia aceptaResponsabilidad a true, actualizar fecha
         if (updateResponsableDto.aceptaResponsabilidad && !responsable.aceptaResponsabilidad) {
             responsable.fechaAceptacion = new Date();
@@ -85,7 +94,6 @@ export class ResponsablesService {
 
     async remove(id: number): Promise<void> {
         const responsable = await this.findOne(id);
-        // Desactivar en lugar de eliminar para mantener integridad referencial
         responsable.activo = false;
         await this.responsablesRepository.save(responsable);
     }
@@ -94,7 +102,6 @@ export class ResponsablesService {
         const responsable = await this.findOne(id);
         responsable.firmaDigital = firmaBase64;
 
-        // Si sube firma, automáticamente acepta responsabilidad
         if (!responsable.aceptaResponsabilidad) {
             responsable.aceptaResponsabilidad = true;
             responsable.fechaAceptacion = new Date();

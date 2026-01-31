@@ -1,20 +1,16 @@
-import { IsInt, IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsInt, IsString, IsOptional } from 'class-validator';
 
 export class CreateTransferenciaDto {
     @IsInt()
-    @IsNotEmpty()
-    bienId: number;
+    idBien: number;
 
     @IsInt()
-    @IsNotEmpty()
     ubicacionDestinoId: number;
 
     @IsInt()
-    @IsNotEmpty()
     responsableDestinoId: number;
 
     @IsString()
-    @IsNotEmpty()
     motivo: string;
 
     @IsString()

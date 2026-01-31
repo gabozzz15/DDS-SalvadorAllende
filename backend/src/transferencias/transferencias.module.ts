@@ -4,14 +4,14 @@ import { TransferenciasService } from './transferencias.service';
 import { TransferenciasController } from './transferencias.controller';
 import { Transferencia } from './entities/transferencia.entity';
 import { BienesModule } from '../bienes/bienes.module';
-import { UbicacionesModule } from '../ubicaciones/ubicaciones.module';
+import { UnidadesAdministrativasModule } from '../unidades-administrativas/unidades-administrativas.module';
 import { ResponsablesModule } from '../responsables/responsables.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Transferencia]),
         BienesModule,
-        UbicacionesModule,
+        UnidadesAdministrativasModule,
         ResponsablesModule,
     ],
     controllers: [TransferenciasController],

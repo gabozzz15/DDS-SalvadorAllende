@@ -24,7 +24,7 @@ const Bienes = () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
-            if (estadoFilter) params.append('estado', estadoFilter);
+            if (estadoFilter) params.append('estatusUso', estadoFilter);
             if (search) params.append('search', search);
 
             const response = await api.get(`/bienes?${params.toString()}`);
@@ -211,13 +211,13 @@ const Bienes = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`badge ${getEstadoBadge(bien.estado)}`}>
-                                                {bien.estado.replace('_', ' ')}
+                                            <span className={`badge ${getEstadoBadge(bien.estatusUso)}`}>
+                                                {bien.estatusUso.replace('_', ' ')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`badge ${getCondicionBadge(bien.condicion)}`}>
-                                                {bien.condicion}
+                                            <span className={`badge ${getCondicionBadge(bien.condicionFisica)}`}>
+                                                {bien.condicionFisica}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

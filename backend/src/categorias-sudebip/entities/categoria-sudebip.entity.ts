@@ -16,7 +16,7 @@ export enum NivelCategoria {
 
 @Entity('categorias_sudebip')
 export class CategoriaSudebip {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn({ name: 'id_categoria' })
     id: number;
 
     @Column({ unique: true, length: 10 })

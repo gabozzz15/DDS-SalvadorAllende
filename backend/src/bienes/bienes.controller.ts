@@ -17,7 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
-import { EstadoBien } from './entities/bien.entity';
+import { EstatusUso } from './entities/bien.entity';
 
 @Controller('bienes')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -32,15 +32,15 @@ export class BienesController {
 
     @Get()
     findAll(
-        @Query('estado') estado?: EstadoBien,
-        @Query('ubicacionId') ubicacionId?: string,
-        @Query('responsableId') responsableId?: string,
+        @Query('estatusUso') estatusUso?: EstatusUso,
+        @Query('idUnidadAdministrativa') idUnidadAdministrativa?: string,
+        @Query('idResponsableUso') idResponsableUso?: string,
         @Query('search') search?: string,
     ) {
         return this.bienesService.findAll({
-            estado,
-            ubicacionId: ubicacionId ? +ubicacionId : undefined,
-            responsableId: responsableId ? +responsableId : undefined,
+            estatusUso,
+            idUnidadAdministrativa: idUnidadAdministrativa ? +idUnidadAdministrativa : undefined,
+            idResponsableUso: idResponsableUso ? +idResponsableUso : undefined,
             search,
         });
     }

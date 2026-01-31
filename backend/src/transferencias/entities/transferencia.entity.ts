@@ -8,11 +8,11 @@ import {
     Index,
 } from 'typeorm';
 import { Bien } from '../../bienes/entities/bien.entity';
-import { Ubicacion } from '../../ubicaciones/entities/ubicacion.entity';
+import { UnidadAdministrativa } from '../../unidades-administrativas/entities/unidad-administrativa.entity';
 import { Responsable } from '../../responsables/entities/responsable.entity';
 import { User } from '../../users/entities/user.entity';
 
-export enum EstadoTransferencia {
+export enum EstatusTransferencia {
     PENDIENTE = 'PENDIENTE',
     APROBADA = 'APROBADA',
     RECHAZADA = 'RECHAZADA',
@@ -21,32 +21,32 @@ export enum EstadoTransferencia {
 
 @Entity('transferencias')
 export class Transferencia {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn({ name: 'id_solicitud' })
     id: number;
 
-    @Column({ name: 'bien_id' })
+    @Column({ name: 'id_bien' })
     @Index()
-    bienId: number;
+    idBien: number;
 
     @ManyToOne(() => Bien)
-    @JoinColumn({ name: 'bien_id' })
+    @JoinColumn({ name: 'id_bien' })
     bien: Bien;
 
     @Column({ name: 'ubicacion_origen_id' })
     @Index()
     ubicacionOrigenId: number;
 
-    @ManyToOne(() => Ubicacion)
+    @ManyToOne(() => UnidadAdministrativa)
     @JoinColumn({ name: 'ubicacion_origen_id' })
-    ubicacionOrigen: Ubicacion;
+    ubicacionOrigen: UnidadAdministrativa;
 
     @Column({ name: 'ubicacion_destino_id' })
     @Index()
     ubicacionDestinoId: number;
 
-    @ManyToOne(() => Ubicacion)
+    @ManyToOne(() => UnidadAdministrativa)
     @JoinColumn({ name: 'ubicacion_destino_id' })
-    ubicacionDestino: Ubicacion;
+    ubicacionDestino: UnidadAdministrativa;
 
     @Column({ name: 'responsable_origen_id' })
     responsableOrigenId: number;
@@ -77,11 +77,11 @@ export class Transferencia {
 
     @Column({
         type: 'enum',
-        enum: EstadoTransferencia,
-        default: EstadoTransferencia.PENDIENTE,
+        enum: EstatusTransferencia,
+        default: EstatusTransferencia.PENDIENTE,
     })
     @Index()
-    estado: EstadoTransferencia;
+    estatus: EstatusTransferencia;
 
     @Column({ type: 'text', nullable: true })
     observaciones: string;

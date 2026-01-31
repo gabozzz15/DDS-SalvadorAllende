@@ -1,11 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Desincorporacion, EstadoDesincorporacion } from './entities/desincorporacion.entity';
+import { Desincorporacion, EstatusDesincorporacion } from './entities/desincorporacion.entity';
 import { CreateDesincorporacionDto } from './dto/create-desincorporacion.dto';
-import { UpdateDesincorporacionDto } from './dto/update-desincorporacion.dto';
 import { BienesService } from '../bienes/bienes.service';
-import { EstadoBien } from '../bienes/entities/bien.entity';
+import { EstatusUso } from '../bienes/entities/bien.entity';
 
 @Injectable()
 export class DesincorporacionesService {
@@ -17,50 +16,42 @@ export class DesincorporacionesService {
 
     async create(createDesincorporacionDto: CreateDesincorporacionDto, userId: number): Promise<Desincorporacion> {
         // Validar que el bien existe
-        const bien = await this.bienesService.findOne(createDesincorporacionDto.bienId);
+        const bien = await this.bienesService.findOne(createDesincorporacionDto.idBien);
 
         // Verificar que el bien no esté ya desincorporado
-        if (bien.estado === EstadoBien.DESINCORPORADO) {
+        if (bien.estatusUso === EstatusUso.DESINCORPORADO) {
             throw new BadRequestException('El bien ya está desincorporado');
         }
 
         // Verificar que no haya una desincorporación pendiente para este bien
-        const pendingDecommission = await this.desincorporacionesRepository.findOne({
-            where: {
-                bienId: createDesincorporacionDto.bienId,
-                estado: EstadoDesincorporacion.PENDIENTE,
-            },
+        const existing = await this.desincorporacionesRepository.findOne({
+            where: { idBien: createDesincorporacionDto.idBien },
         });
 
-        if (pendingDecommission) {
-            throw new BadRequestException('Ya existe una desincorporación pendiente para este bien');
+        if (existing) {
+            throw new BadRequestException('Ya existe una solicitud de desincorporación para este bien');
         }
 
         // Crear la desincorporación
         const desincorporacion = this.desincorporacionesRepository.create({
             ...createDesincorporacionDto,
             solicitadoPor: userId,
-            estado: EstadoDesincorporacion.PENDIENTE,
+            estatus: EstatusDesincorporacion.PENDIENTE,
         });
 
         return this.desincorporacionesRepository.save(desincorporacion);
     }
 
     async findAll(filters?: {
-        estado?: EstadoDesincorporacion;
-        bienId?: number;
+        estatus?: EstatusDesincorporacion;
     }): Promise<Desincorporacion[]> {
         const queryBuilder = this.desincorporacionesRepository.createQueryBuilder('desincorporacion')
             .leftJoinAndSelect('desincorporacion.bien', 'bien')
             .leftJoinAndSelect('desincorporacion.solicitante', 'solicitante')
             .leftJoinAndSelect('desincorporacion.aprobador', 'aprobador');
 
-        if (filters?.estado) {
-            queryBuilder.andWhere('desincorporacion.estado = :estado', { estado: filters.estado });
-        }
-
-        if (filters?.bienId) {
-            queryBuilder.andWhere('desincorporacion.bienId = :bienId', { bienId: filters.bienId });
+        if (filters?.estatus) {
+            queryBuilder.andWhere('desincorporacion.estatus = :estatus', { estatus: filters.estatus });
         }
 
         return queryBuilder
@@ -81,93 +72,63 @@ export class DesincorporacionesService {
         return desincorporacion;
     }
 
-    async update(id: number, updateDesincorporacionDto: UpdateDesincorporacionDto): Promise<Desincorporacion> {
+    async aprobar(id: number, userId: number): Promise<Desincorporacion> {
         const desincorporacion = await this.findOne(id);
 
-        if (desincorporacion.estado !== EstadoDesincorporacion.PENDIENTE) {
-            throw new BadRequestException('Solo se pueden actualizar desincorporaciones pendientes');
-        }
-
-        Object.assign(desincorporacion, updateDesincorporacionDto);
-        return this.desincorporacionesRepository.save(desincorporacion);
-    }
-
-    async approve(id: number, userId: number): Promise<Desincorporacion> {
-        const desincorporacion = await this.findOne(id);
-
-        if (desincorporacion.estado !== EstadoDesincorporacion.PENDIENTE) {
+        if (desincorporacion.estatus !== EstatusDesincorporacion.PENDIENTE) {
             throw new BadRequestException('Solo se pueden aprobar desincorporaciones pendientes');
         }
 
-        desincorporacion.estado = EstadoDesincorporacion.APROBADA;
+        desincorporacion.estatus = EstatusDesincorporacion.APROBADA;
         desincorporacion.fechaAprobacion = new Date();
         desincorporacion.aprobadoPor = userId;
 
-        return this.desincorporacionesRepository.save(desincorporacion);
-    }
-
-    async reject(id: number, userId: number, observaciones: string): Promise<Desincorporacion> {
-        const desincorporacion = await this.findOne(id);
-
-        if (desincorporacion.estado !== EstadoDesincorporacion.PENDIENTE) {
-            throw new BadRequestException('Solo se pueden rechazar desincorporaciones pendientes');
-        }
-
-        desincorporacion.estado = EstadoDesincorporacion.RECHAZADA;
-        desincorporacion.aprobadoPor = userId;
-        desincorporacion.observaciones = observaciones;
-
-        return this.desincorporacionesRepository.save(desincorporacion);
-    }
-
-    async execute(id: number): Promise<Desincorporacion> {
-        const desincorporacion = await this.findOne(id);
-
-        if (desincorporacion.estado !== EstadoDesincorporacion.APROBADA) {
-            throw new BadRequestException('Solo se pueden ejecutar desincorporaciones aprobadas');
-        }
+        const savedDesincorporacion = await this.desincorporacionesRepository.save(desincorporacion);
 
         // Actualizar el estado del bien a DESINCORPORADO
-        await this.bienesService.update(desincorporacion.bienId, {
-            estado: EstadoBien.DESINCORPORADO,
+        await this.bienesService.update(desincorporacion.idBien, {
+            estatusUso: EstatusUso.DESINCORPORADO,
         });
 
-        // Marcar la desincorporación como ejecutada
-        desincorporacion.estado = EstadoDesincorporacion.EJECUTADA;
+        desincorporacion.estatus = EstatusDesincorporacion.EJECUTADA;
         desincorporacion.fechaEjecucion = new Date();
 
         return this.desincorporacionesRepository.save(desincorporacion);
     }
 
-    async cancel(id: number, userId: number): Promise<void> {
+    async rechazar(id: number, userId: number, observaciones?: string): Promise<Desincorporacion> {
         const desincorporacion = await this.findOne(id);
 
-        if (desincorporacion.solicitadoPor !== userId) {
-            throw new ForbiddenException('Solo el solicitante puede cancelar la desincorporación');
+        if (desincorporacion.estatus !== EstatusDesincorporacion.PENDIENTE) {
+            throw new BadRequestException('Solo se pueden rechazar desincorporaciones pendientes');
         }
 
-        if (desincorporacion.estado !== EstadoDesincorporacion.PENDIENTE) {
-            throw new BadRequestException('Solo se pueden cancelar desincorporaciones pendientes');
+        desincorporacion.estatus = EstatusDesincorporacion.RECHAZADA;
+        desincorporacion.aprobadoPor = userId;
+        if (observaciones) {
+            desincorporacion.observaciones = observaciones;
         }
 
-        await this.desincorporacionesRepository.remove(desincorporacion);
+        return this.desincorporacionesRepository.save(desincorporacion);
     }
 
     async getStatistics(): Promise<any> {
         const total = await this.desincorporacionesRepository.count();
-        const pendientes = await this.desincorporacionesRepository.count({ where: { estado: EstadoDesincorporacion.PENDIENTE } });
-        const aprobadas = await this.desincorporacionesRepository.count({ where: { estado: EstadoDesincorporacion.APROBADA } });
-        const ejecutadas = await this.desincorporacionesRepository.count({ where: { estado: EstadoDesincorporacion.EJECUTADA } });
-        const rechazadas = await this.desincorporacionesRepository.count({ where: { estado: EstadoDesincorporacion.RECHAZADA } });
+        const pendientes = await this.desincorporacionesRepository.count({
+            where: { estatus: EstatusDesincorporacion.PENDIENTE }
+        });
+        const aprobadas = await this.desincorporacionesRepository.count({
+            where: { estatus: EstatusDesincorporacion.APROBADA }
+        });
+        const ejecutadas = await this.desincorporacionesRepository.count({
+            where: { estatus: EstatusDesincorporacion.EJECUTADA }
+        });
 
         return {
             total,
-            porEstado: {
-                pendientes,
-                aprobadas,
-                ejecutadas,
-                rechazadas,
-            },
+            pendientes,
+            aprobadas,
+            ejecutadas,
         };
     }
 }

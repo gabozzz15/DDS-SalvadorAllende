@@ -1,13 +1,14 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
-import { Bien, EstadoBien, TipoOrigen } from './entities/bien.entity';
+import { Repository } from 'typeorm';
+import { Bien, EstatusUso } from './entities/bien.entity';
 import { CreateBienDto } from './dto/create-bien.dto';
 import { UpdateBienDto } from './dto/update-bien.dto';
 import { BarcodeService } from './services/barcode.service';
 import { CategoriasSudebipService } from '../categorias-sudebip/categorias-sudebip.service';
-import { UbicacionesService } from '../ubicaciones/ubicaciones.service';
+import { UnidadesAdministrativasService } from '../unidades-administrativas/unidades-administrativas.service';
 import { ResponsablesService } from '../responsables/responsables.service';
+import { TiposOrigenService } from '../tipos-origen/tipos-origen.service';
 
 @Injectable()
 export class BienesService {
@@ -16,8 +17,9 @@ export class BienesService {
         private bienesRepository: Repository<Bien>,
         private barcodeService: BarcodeService,
         private categoriasSudebipService: CategoriasSudebipService,
-        private ubicacionesService: UbicacionesService,
+        private unidadesAdministrativasService: UnidadesAdministrativasService,
         private responsablesService: ResponsablesService,
+        private tiposOrigenService: TiposOrigenService,
     ) { }
 
     async create(createBienDto: CreateBienDto, userId: number): Promise<Bien> {
@@ -30,23 +32,31 @@ export class BienesService {
             throw new ConflictException('Ya existe un bien con este código interno');
         }
 
-        // Validar que la categoría SUDEBIP exista
-        const categoria = await this.categoriasSudebipService.findByCodigo(createBienDto.codigoSudebip);
-        if (!categoria) {
-            throw new BadRequestException('Código SUDEBIP no válido');
+        // Si el estatus es INACTIVO, asignar al Departamento de Bienes (UA-009)
+        if (createBienDto.estatusUso === 'INACTIVO') {
+            const departamentoBienes = await this.unidadesAdministrativasService.findByCode('UA-009');
+            if (departamentoBienes) {
+                createBienDto.idUnidadAdministrativa = departamentoBienes.id;
+            }
         }
 
-        // Validar ubicación
-        await this.ubicacionesService.findOne(createBienDto.ubicacionId);
+        // Validar que la categoría específica exista
+        await this.categoriasSudebipService.findOne(createBienDto.idCategoriaEspecifica);
+
+        // Validar unidad administrativa
+        await this.unidadesAdministrativasService.findOne(createBienDto.idUnidadAdministrativa);
 
         // Validar responsable
-        await this.responsablesService.findOne(createBienDto.responsableId);
+        await this.responsablesService.findOne(createBienDto.idResponsableUso);
+
+        // Validar tipo de origen
+        await this.tiposOrigenService.findOne(createBienDto.idTipoOrigen);
 
         // Crear el bien
         const bien = this.bienesRepository.create({
             ...createBienDto,
-            categoriaSudebipId: categoria.id,
             createdBy: userId,
+            fechaFinalizaRegistro: new Date(), // Marcar fin de registro
         });
 
         // Guardar para obtener el ID
@@ -60,46 +70,37 @@ export class BienesService {
     }
 
     async findAll(filters?: {
-        estado?: EstadoBien;
-        ubicacionId?: number;
-        responsableId?: number;
+        estatusUso?: EstatusUso;
+        idUnidadAdministrativa?: number;
+        idResponsableUso?: number;
         search?: string;
     }): Promise<Bien[]> {
-        const where: any = {};
-
-        if (filters?.estado) {
-            where.estado = filters.estado;
-        }
-
-        if (filters?.ubicacionId) {
-            where.ubicacionId = filters.ubicacionId;
-        }
-
-        if (filters?.responsableId) {
-            where.responsableId = filters.responsableId;
-        }
-
         const queryBuilder = this.bienesRepository.createQueryBuilder('bien')
-            .leftJoinAndSelect('bien.ubicacion', 'ubicacion')
-            .leftJoinAndSelect('bien.responsable', 'responsable')
-            .leftJoinAndSelect('bien.categoriaSudebip', 'categoria')
+            .leftJoinAndSelect('bien.unidadAdministrativa', 'unidad')
+            .leftJoinAndSelect('bien.responsableUso', 'responsable')
+            .leftJoinAndSelect('bien.categoriaEspecifica', 'categoria')
+            .leftJoinAndSelect('bien.tipoOrigen', 'tipoOrigen')
             .leftJoinAndSelect('bien.creator', 'creator');
 
-        if (filters?.estado) {
-            queryBuilder.andWhere('bien.estado = :estado', { estado: filters.estado });
+        if (filters?.estatusUso) {
+            queryBuilder.andWhere('bien.estatusUso = :estatusUso', { estatusUso: filters.estatusUso });
         }
 
-        if (filters?.ubicacionId) {
-            queryBuilder.andWhere('bien.ubicacionId = :ubicacionId', { ubicacionId: filters.ubicacionId });
+        if (filters?.idUnidadAdministrativa) {
+            queryBuilder.andWhere('bien.idUnidadAdministrativa = :idUnidadAdministrativa', {
+                idUnidadAdministrativa: filters.idUnidadAdministrativa
+            });
         }
 
-        if (filters?.responsableId) {
-            queryBuilder.andWhere('bien.responsableId = :responsableId', { responsableId: filters.responsableId });
+        if (filters?.idResponsableUso) {
+            queryBuilder.andWhere('bien.idResponsableUso = :idResponsableUso', {
+                idResponsableUso: filters.idResponsableUso
+            });
         }
 
         if (filters?.search) {
             queryBuilder.andWhere(
-                '(bien.codigoInterno LIKE :search OR bien.descripcion LIKE :search OR bien.marca LIKE :search OR bien.modelo LIKE :search OR bien.serial LIKE :search)',
+                '(bien.codigoInterno LIKE :search OR bien.descripcion LIKE :search OR bien.marca LIKE :search OR bien.modelo LIKE :search OR bien.serialBien LIKE :search)',
                 { search: `%${filters.search}%` }
             );
         }
@@ -112,7 +113,7 @@ export class BienesService {
     async findOne(id: number): Promise<Bien> {
         const bien = await this.bienesRepository.findOne({
             where: { id },
-            relations: ['ubicacion', 'responsable', 'categoriaSudebip', 'creator'],
+            relations: ['unidadAdministrativa', 'responsableUso', 'categoriaEspecifica', 'tipoOrigen', 'creator'],
         });
 
         if (!bien) {
@@ -125,12 +126,20 @@ export class BienesService {
     async findByCodigoInterno(codigoInterno: string): Promise<Bien | null> {
         return this.bienesRepository.findOne({
             where: { codigoInterno },
-            relations: ['ubicacion', 'responsable', 'categoriaSudebip'],
+            relations: ['unidadAdministrativa', 'responsableUso', 'categoriaEspecifica', 'tipoOrigen'],
         });
     }
 
     async update(id: number, updateBienDto: UpdateBienDto): Promise<Bien> {
         const bien = await this.findOne(id);
+
+        // Si el estatus cambia a INACTIVO, asignar al Departamento de Bienes (UA-009)
+        if (updateBienDto.estatusUso === 'INACTIVO') {
+            const departamentoBienes = await this.unidadesAdministrativasService.findByCode('UA-009');
+            if (departamentoBienes) {
+                updateBienDto.idUnidadAdministrativa = departamentoBienes.id;
+            }
+        }
 
         // Si se actualiza el código interno, verificar que no exista
         if (updateBienDto.codigoInterno && updateBienDto.codigoInterno !== bien.codigoInterno) {
@@ -140,84 +149,77 @@ export class BienesService {
             }
         }
 
-        // Validar ubicación si se actualiza
-        if (updateBienDto.ubicacionId) {
-            const ubicacion = await this.ubicacionesService.findOne(updateBienDto.ubicacionId);
-            bien.ubicacion = ubicacion;
-            bien.ubicacionId = ubicacion.id;
+        // Validar unidad administrativa si se actualiza
+        if (updateBienDto.idUnidadAdministrativa) {
+            const unidad = await this.unidadesAdministrativasService.findOne(updateBienDto.idUnidadAdministrativa);
+            bien.unidadAdministrativa = unidad;
+            bien.idUnidadAdministrativa = unidad.id;
         }
 
         // Validar responsable si se actualiza
-        if (updateBienDto.responsableId) {
-            const responsable = await this.responsablesService.findOne(updateBienDto.responsableId);
-            bien.responsable = responsable;
-            bien.responsableId = responsable.id;
+        if (updateBienDto.idResponsableUso) {
+            const responsable = await this.responsablesService.findOne(updateBienDto.idResponsableUso);
+            bien.responsableUso = responsable;
+            bien.idResponsableUso = responsable.id;
         }
 
-        // Validar categoría SUDEBIP si se actualiza
-        if (updateBienDto.categoriaSudebipId) {
-            const categoria = await this.categoriasSudebipService.findOne(updateBienDto.categoriaSudebipId);
-            bien.categoriaSudebip = categoria;
-            bien.categoriaSudebipId = categoria.id;
+        // Validar categoría específica si se actualiza
+        if (updateBienDto.idCategoriaEspecifica) {
+            const categoria = await this.categoriasSudebipService.findOne(updateBienDto.idCategoriaEspecifica);
+            bien.categoriaEspecifica = categoria;
+            bien.idCategoriaEspecifica = categoria.id;
         }
 
-        // Actualizar campos simples explícitamente para asegurar que se guarden
-        if (updateBienDto.observaciones !== undefined) bien.observaciones = updateBienDto.observaciones;
-        if (updateBienDto.descripcion) bien.descripcion = updateBienDto.descripcion;
-        if (updateBienDto.marca !== undefined) bien.marca = updateBienDto.marca;
-        if (updateBienDto.modelo !== undefined) bien.modelo = updateBienDto.modelo;
-        if (updateBienDto.serial !== undefined) bien.serial = updateBienDto.serial;
-        if (updateBienDto.fechaAdquisicion) bien.fechaAdquisicion = updateBienDto.fechaAdquisicion as any; // TypeORM handles string dates
-        if (updateBienDto.estado) bien.estado = updateBienDto.estado;
-        if (updateBienDto.condicion) bien.condicion = updateBienDto.condicion;
-        if (updateBienDto.codigoInterno) bien.codigoInterno = updateBienDto.codigoInterno;
-        if (updateBienDto.tipoOrigen) bien.tipoOrigen = updateBienDto.tipoOrigen;
-        if (updateBienDto.tiempoRegistro) bien.tiempoRegistro = updateBienDto.tiempoRegistro;
+        // Validar tipo de origen si se actualiza
+        if (updateBienDto.idTipoOrigen) {
+            const tipoOrigen = await this.tiposOrigenService.findOne(updateBienDto.idTipoOrigen);
+            bien.tipoOrigen = tipoOrigen;
+            bien.idTipoOrigen = tipoOrigen.id;
+        }
 
+        Object.assign(bien, updateBienDto);
         return this.bienesRepository.save(bien);
     }
 
     async remove(id: number): Promise<void> {
         const bien = await this.findOne(id);
-
-        // No eliminar físicamente, cambiar estado a DESINCORPORADO
-        bien.estado = EstadoBien.DESINCORPORADO;
+        bien.estatusUso = EstatusUso.DESINCORPORADO;
         await this.bienesRepository.save(bien);
     }
 
-    async getStatistics(): Promise<any> {
+    async getStatistics() {
         const total = await this.bienesRepository.count();
-        const activos = await this.bienesRepository.count({ where: { estado: EstadoBien.ACTIVO } });
-        const inactivos = await this.bienesRepository.count({ where: { estado: EstadoBien.INACTIVO } });
-        const enReparacion = await this.bienesRepository.count({ where: { estado: EstadoBien.EN_REPARACION } });
-        const desincorporados = await this.bienesRepository.count({ where: { estado: EstadoBien.DESINCORPORADO } });
+        const activos = await this.bienesRepository.count({ where: { estatusUso: EstatusUso.ACTIVO } });
+        const inactivos = await this.bienesRepository.count({ where: { estatusUso: EstatusUso.INACTIVO } });
+        const enReparacion = await this.bienesRepository.count({ where: { estatusUso: EstatusUso.EN_REPARACION } });
+        const desincorporados = await this.bienesRepository.count({ where: { estatusUso: EstatusUso.DESINCORPORADO } });
 
-        // Estadísticas por Tipo de Origen
-        const porTipoOrigen = await this.bienesRepository.createQueryBuilder('bien')
-            .select('bien.tipoOrigen', 'tipo')
-            .addSelect('COUNT(bien.id)', 'count')
-            .groupBy('bien.tipoOrigen')
+        // Estadísticas por origen
+        const porOrigen = await this.bienesRepository
+            .createQueryBuilder('bien')
+            .leftJoin('bien.tipoOrigen', 'origen')
+            .select('origen.nombre', 'origen')
+            .addSelect('COUNT(bien.id)', 'cantidad')
+            .groupBy('origen.nombre')
             .getRawMany();
 
-        // Tiempo promedio de registro
-        const { avgTiempoRegistro } = await this.bienesRepository.createQueryBuilder('bien')
-            .select('AVG(bien.tiempoRegistro)', 'avgTiempoRegistro')
-            .where('bien.tiempoRegistro IS NOT NULL')
+        // Tiempo promedio de registro (en segundos)
+        const tiempoRegistroResult = await this.bienesRepository
+            .createQueryBuilder('bien')
+            .select('AVG(TIMESTAMPDIFF(SECOND, bien.fechaInicioRegistro, bien.fechaFinalizaRegistro))', 'promedio')
+            .where('bien.fechaFinalizaRegistro IS NOT NULL')
             .getRawOne();
+
+        const tiempoPromedioRegistro = tiempoRegistroResult?.promedio ? Math.round(tiempoRegistroResult.promedio) : 0;
 
         return {
             total,
-            porEstado: {
-                activos,
-                inactivos,
-                enReparacion,
-                desincorporados,
-            },
-            porTipoOrigen: porTipoOrigen.reduce((acc, curr) => {
-                acc[curr.tipo] = parseInt(curr.count);
-                return acc;
-            }, {}),
-            tiempoPromedioRegistro: parseFloat(avgTiempoRegistro) || 0,
+            activos,
+            inactivos,
+            enReparacion,
+            desincorporados,
+            porOrigen,
+            tiempoPromedioRegistro,
         };
     }
 }

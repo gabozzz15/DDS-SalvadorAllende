@@ -1,11 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Transferencia, EstadoTransferencia } from './entities/transferencia.entity';
+import { Transferencia, EstatusTransferencia } from './entities/transferencia.entity';
 import { CreateTransferenciaDto } from './dto/create-transferencia.dto';
-import { UpdateTransferenciaDto } from './dto/update-transferencia.dto';
 import { BienesService } from '../bienes/bienes.service';
-import { UbicacionesService } from '../ubicaciones/ubicaciones.service';
+import { UnidadesAdministrativasService } from '../unidades-administrativas/unidades-administrativas.service';
 import { ResponsablesService } from '../responsables/responsables.service';
 
 @Injectable()
@@ -14,16 +13,16 @@ export class TransferenciasService {
         @InjectRepository(Transferencia)
         private transferenciasRepository: Repository<Transferencia>,
         private bienesService: BienesService,
-        private ubicacionesService: UbicacionesService,
+        private unidadesAdministrativasService: UnidadesAdministrativasService,
         private responsablesService: ResponsablesService,
     ) { }
 
     async create(createTransferenciaDto: CreateTransferenciaDto, userId: number): Promise<Transferencia> {
         // Validar que el bien existe
-        const bien = await this.bienesService.findOne(createTransferenciaDto.bienId);
+        const bien = await this.bienesService.findOne(createTransferenciaDto.idBien);
 
         // Validar ubicación destino
-        await this.ubicacionesService.findOne(createTransferenciaDto.ubicacionDestinoId);
+        await this.unidadesAdministrativasService.findOne(createTransferenciaDto.ubicacionDestinoId);
 
         // Validar responsable destino
         await this.responsablesService.findOne(createTransferenciaDto.responsableDestinoId);
@@ -31,8 +30,8 @@ export class TransferenciasService {
         // Verificar que no haya una transferencia pendiente para este bien
         const pendingTransfer = await this.transferenciasRepository.findOne({
             where: {
-                bienId: createTransferenciaDto.bienId,
-                estado: EstadoTransferencia.PENDIENTE,
+                idBien: createTransferenciaDto.idBien,
+                estatus: EstatusTransferencia.PENDIENTE,
             },
         });
 
@@ -43,18 +42,18 @@ export class TransferenciasService {
         // Crear la transferencia
         const transferencia = this.transferenciasRepository.create({
             ...createTransferenciaDto,
-            ubicacionOrigenId: bien.ubicacionId,
-            responsableOrigenId: bien.responsableId,
+            ubicacionOrigenId: bien.idUnidadAdministrativa,
+            responsableOrigenId: bien.idResponsableUso,
             solicitadoPor: userId,
-            estado: EstadoTransferencia.PENDIENTE,
+            estatus: EstatusTransferencia.PENDIENTE,
         });
 
         return this.transferenciasRepository.save(transferencia);
     }
 
     async findAll(filters?: {
-        estado?: EstadoTransferencia;
-        bienId?: number;
+        estatus?: EstatusTransferencia;
+        idBien?: number;
     }): Promise<Transferencia[]> {
         const queryBuilder = this.transferenciasRepository.createQueryBuilder('transferencia')
             .leftJoinAndSelect('transferencia.bien', 'bien')
@@ -65,12 +64,12 @@ export class TransferenciasService {
             .leftJoinAndSelect('transferencia.solicitante', 'solicitante')
             .leftJoinAndSelect('transferencia.aprobador', 'aprobador');
 
-        if (filters?.estado) {
-            queryBuilder.andWhere('transferencia.estado = :estado', { estado: filters.estado });
+        if (filters?.estatus) {
+            queryBuilder.andWhere('transferencia.estatus = :estatus', { estatus: filters.estatus });
         }
 
-        if (filters?.bienId) {
-            queryBuilder.andWhere('transferencia.bienId = :bienId', { bienId: filters.bienId });
+        if (filters?.idBien) {
+            queryBuilder.andWhere('transferencia.idBien = :idBien', { idBien: filters.idBien });
         }
 
         return queryBuilder
@@ -99,48 +98,39 @@ export class TransferenciasService {
         return transferencia;
     }
 
-    async update(id: number, updateTransferenciaDto: UpdateTransferenciaDto): Promise<Transferencia> {
+    async aprobar(id: number, userId: number): Promise<Transferencia> {
         const transferencia = await this.findOne(id);
 
-        if (transferencia.estado !== EstadoTransferencia.PENDIENTE) {
-            throw new BadRequestException('Solo se pueden actualizar transferencias pendientes');
-        }
-
-        Object.assign(transferencia, updateTransferenciaDto);
-        return this.transferenciasRepository.save(transferencia);
-    }
-
-    async approve(id: number, userId: number): Promise<Transferencia> {
-        const transferencia = await this.findOne(id);
-
-        if (transferencia.estado !== EstadoTransferencia.PENDIENTE) {
+        if (transferencia.estatus !== EstatusTransferencia.PENDIENTE) {
             throw new BadRequestException('Solo se pueden aprobar transferencias pendientes');
         }
 
+        transferencia.estatus = EstatusTransferencia.APROBADA;
+        transferencia.fechaAprobacion = new Date();
+        transferencia.aprobadoPor = userId;
+
+        const savedTransferencia = await this.transferenciasRepository.save(transferencia);
+
         // Actualizar el bien con la nueva ubicación y responsable
-        const bien = await this.bienesService.findOne(transferencia.bienId);
-        await this.bienesService.update(bien.id, {
-            ubicacionId: transferencia.ubicacionDestinoId,
-            responsableId: transferencia.responsableDestinoId,
+        await this.bienesService.update(transferencia.idBien, {
+            idUnidadAdministrativa: transferencia.ubicacionDestinoId,
+            idResponsableUso: transferencia.responsableDestinoId,
         });
 
-        // Marcar como aprobada y ejecutada
-        transferencia.estado = EstadoTransferencia.APROBADA;
-        transferencia.fechaAprobacion = new Date();
+        transferencia.estatus = EstatusTransferencia.EJECUTADA;
         transferencia.fechaEjecucion = new Date();
-        transferencia.aprobadoPor = userId;
 
         return this.transferenciasRepository.save(transferencia);
     }
 
-    async reject(id: number, userId: number, observaciones?: string): Promise<Transferencia> {
+    async rechazar(id: number, userId: number, observaciones?: string): Promise<Transferencia> {
         const transferencia = await this.findOne(id);
 
-        if (transferencia.estado !== EstadoTransferencia.PENDIENTE) {
+        if (transferencia.estatus !== EstatusTransferencia.PENDIENTE) {
             throw new BadRequestException('Solo se pueden rechazar transferencias pendientes');
         }
 
-        transferencia.estado = EstadoTransferencia.RECHAZADA;
+        transferencia.estatus = EstatusTransferencia.RECHAZADA;
         transferencia.aprobadoPor = userId;
         if (observaciones) {
             transferencia.observaciones = observaciones;
@@ -149,63 +139,33 @@ export class TransferenciasService {
         return this.transferenciasRepository.save(transferencia);
     }
 
-    async execute(id: number): Promise<Transferencia> {
-        const transferencia = await this.findOne(id);
-
-        if (transferencia.estado !== EstadoTransferencia.APROBADA) {
-            throw new BadRequestException('Solo se pueden ejecutar transferencias aprobadas');
-        }
-
-        // Actualizar el bien con la nueva ubicación y responsable
-        const bien = await this.bienesService.findOne(transferencia.bienId);
-        await this.bienesService.update(bien.id, {
-            ubicacionId: transferencia.ubicacionDestinoId,
-            responsableId: transferencia.responsableDestinoId,
-        });
-
-        // Marcar la transferencia como ejecutada
-        transferencia.estado = EstadoTransferencia.EJECUTADA;
-        transferencia.fechaEjecucion = new Date();
-
-        return this.transferenciasRepository.save(transferencia);
-    }
-
-    async cancel(id: number, userId: number): Promise<void> {
-        const transferencia = await this.findOne(id);
-
-        if (transferencia.solicitadoPor !== userId) {
-            throw new ForbiddenException('Solo el solicitante puede cancelar la transferencia');
-        }
-
-        if (transferencia.estado !== EstadoTransferencia.PENDIENTE) {
-            throw new BadRequestException('Solo se pueden cancelar transferencias pendientes');
-        }
-
-        await this.transferenciasRepository.remove(transferencia);
-    }
-
     async getStatistics(): Promise<any> {
         const total = await this.transferenciasRepository.count();
-        const pendientes = await this.transferenciasRepository.count({ where: { estado: EstadoTransferencia.PENDIENTE } });
-        const aprobadas = await this.transferenciasRepository.count({ where: { estado: EstadoTransferencia.APROBADA } });
-        const ejecutadas = await this.transferenciasRepository.count({ where: { estado: EstadoTransferencia.EJECUTADA } });
-        const rechazadas = await this.transferenciasRepository.count({ where: { estado: EstadoTransferencia.RECHAZADA } });
+        const pendientes = await this.transferenciasRepository.count({
+            where: { estatus: EstatusTransferencia.PENDIENTE }
+        });
+        const aprobadas = await this.transferenciasRepository.count({
+            where: { estatus: EstatusTransferencia.APROBADA }
+        });
+        const ejecutadas = await this.transferenciasRepository.count({
+            where: { estatus: EstatusTransferencia.EJECUTADA }
+        });
 
-        // Tiempo promedio de aprobación (en horas)
-        const { avgTiempoAprobacion } = await this.transferenciasRepository.createQueryBuilder('transferencia')
-            .select('AVG(TIMESTAMPDIFF(HOUR, transferencia.fechaSolicitud, transferencia.fechaAprobacion))', 'avgTiempoAprobacion')
-            .where('transferencia.estado = :estado', { estado: EstadoTransferencia.APROBADA })
+        // Tiempo promedio de aprobación
+        const tiempoAprobacionResult = await this.transferenciasRepository
+            .createQueryBuilder('transferencia')
+            .select('AVG(TIMESTAMPDIFF(SECOND, transferencia.fechaSolicitud, transferencia.fechaAprobacion))', 'promedio')
+            .where('transferencia.fechaAprobacion IS NOT NULL')
             .getRawOne();
+
+        const tiempoPromedioAprobacion = tiempoAprobacionResult?.promedio ? Math.round(tiempoAprobacionResult.promedio) : 0;
 
         return {
             total,
-            porEstado: {
-                pendientes,
-                aprobadas,
-                ejecutadas,
-                rechazadas,
-            },
-            tiempoPromedioAprobacion: parseFloat(avgTiempoAprobacion) || 0,
+            pendientes,
+            aprobadas,
+            ejecutadas,
+            tiempoPromedioAprobacion,
         };
     }
 }

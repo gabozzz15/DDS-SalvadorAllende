@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface Transferencia {
     id: number;
-    bienId: number;
+    idBien: number;
     ubicacionOrigenId: number;
     ubicacionDestinoId: number;
     responsableOrigenId: number;
@@ -17,7 +17,7 @@ interface Transferencia {
     fechaEjecucion?: string;
     solicitadoPor: number;
     aprobadoPor?: number;
-    observaciones?: string;
+    observacion?: string;
 }
 
 interface Bien {
@@ -56,11 +56,11 @@ const Transferencias = () => {
 
     // Form data
     const [formData, setFormData] = useState({
-        bienId: '',
+        idBien: '',
         ubicacionDestinoId: '',
         responsableDestinoId: '',
         motivo: '',
-        observaciones: '',
+        observacion: '',
     });
 
     useEffect(() => {
@@ -72,8 +72,8 @@ const Transferencias = () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
-            if (estadoFilter) params.append('estado', estadoFilter);
-            if (bienFilter) params.append('bienId', bienFilter);
+            if (estadoFilter) params.append('estatusUso', estadoFilter);
+            if (bienFilter) params.append('idBien', bienFilter);
 
             const response = await api.get(`/transferencias?${params.toString()}`);
             setTransferencias(response.data);
@@ -88,7 +88,7 @@ const Transferencias = () => {
         try {
             const [bienesRes, ubicacionesRes, responsablesRes] = await Promise.all([
                 api.get('/bienes'),
-                api.get('/ubicaciones'),
+                api.get('/unidades-administrativas'),
                 api.get('/responsables'),
             ]);
             setBienes(bienesRes.data);
@@ -101,11 +101,11 @@ const Transferencias = () => {
 
     const handleCreate = () => {
         setFormData({
-            bienId: '',
+            idBien: '',
             ubicacionDestinoId: '',
             responsableDestinoId: '',
             motivo: '',
-            observaciones: '',
+            observacion: '',
         });
         setModalMode('create');
         setModalOpen(true);
@@ -121,11 +121,11 @@ const Transferencias = () => {
         e.preventDefault();
         try {
             const payload = {
-                bienId: parseInt(formData.bienId),
+                idBien: parseInt(formData.idBien),
                 ubicacionDestinoId: parseInt(formData.ubicacionDestinoId),
                 responsableDestinoId: parseInt(formData.responsableDestinoId),
                 motivo: formData.motivo,
-                observaciones: formData.observaciones,
+                observacion: formData.observacion,
             };
 
             await api.post('/transferencias', payload);
@@ -141,7 +141,7 @@ const Transferencias = () => {
         if (!window.confirm('¿Está seguro de aprobar esta transferencia? El bien se actualizará automáticamente.')) return;
 
         try {
-            await api.post(`/transferencias/${id}/approve`);
+            await api.post(`/transferencias/${id}/aprobar`);
             fetchTransferencias();
         } catch (error: any) {
             console.error('Error aprobando transferencia:', error);
@@ -153,7 +153,7 @@ const Transferencias = () => {
         if (!window.confirm('¿Está seguro de rechazar esta transferencia?')) return;
 
         try {
-            await api.post(`/transferencias/${id}/reject`);
+            await api.post(`/transferencias/${id}/rechazar`);
             fetchTransferencias();
         } catch (error: any) {
             console.error('Error rechazando transferencia:', error);
@@ -269,7 +269,7 @@ const Transferencias = () => {
                                     <tr key={transferencia.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
-                                                Bien #{transferencia.bienId}
+                                                Bien #{transferencia.idBien}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -286,8 +286,8 @@ const Transferencias = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`badge ${getEstadoBadge(transferencia.estado)}`}>
-                                                {transferencia.estado}
+                                            <span className={`badge ${getEstadoBadge(transferencia.estatusUso)}`}>
+                                                {transferencia.estatusUso}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -302,7 +302,7 @@ const Transferencias = () => {
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
-                                                {isAdmin && transferencia.estado === 'PENDIENTE' && (
+                                                {isAdmin && transferencia.estatusUso === 'PENDIENTE' && (
                                                     <>
                                                         <button
                                                             onClick={() => handleAprobar(transferencia.id)}
@@ -357,8 +357,8 @@ const Transferencias = () => {
                                             Bien *
                                         </label>
                                         <select
-                                            value={formData.bienId}
-                                            onChange={(e) => setFormData({ ...formData, bienId: e.target.value })}
+                                            value={formData.idBien}
+                                            onChange={(e) => setFormData({ ...formData, idBien: e.target.value })}
                                             className="input"
                                             required
                                         >
@@ -431,8 +431,8 @@ const Transferencias = () => {
                                             Observaciones
                                         </label>
                                         <textarea
-                                            value={formData.observaciones}
-                                            onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
+                                            value={formData.observacion}
+                                            onChange={(e) => setFormData({ ...formData, observacion: e.target.value })}
                                             className="input"
                                             rows={2}
                                         />
@@ -467,10 +467,10 @@ const Transferencias = () => {
                                         <label className="text-sm font-medium text-gray-500">Motivo</label>
                                         <p className="mt-1 text-gray-900">{selectedTransferencia!.motivo}</p>
                                     </div>
-                                    {selectedTransferencia!.observaciones && (
+                                    {selectedTransferencia!.observacion && (
                                         <div>
                                             <label className="text-sm font-medium text-gray-500">Observaciones</label>
-                                            <p className="mt-1 text-gray-900">{selectedTransferencia!.observaciones}</p>
+                                            <p className="mt-1 text-gray-900">{selectedTransferencia!.observacion}</p>
                                         </div>
                                     )}
                                 </div>

@@ -1,25 +1,18 @@
-import { IsString, IsEmail, IsOptional, IsBoolean, IsInt, Matches, MinLength } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsInt, IsEnum, IsBoolean } from 'class-validator';
+import { TipoResponsableSudebip } from '../entities/responsable.entity';
 
 export class CreateResponsableDto {
     @IsString()
-    @Matches(/^[VEJ]-\d{7,8}$/, {
-        message: 'Cédula debe tener formato V-12345678, E-12345678 o J-12345678',
-    })
     cedula: string;
 
     @IsString()
-    @MinLength(2)
     nombres: string;
 
     @IsString()
-    @MinLength(2)
     apellidos: string;
 
     @IsString()
     @IsOptional()
-    @Matches(/^0\d{3}-\d{7}$/, {
-        message: 'Teléfono debe tener formato 0XXX-XXXXXXX',
-    })
     telefono?: string;
 
     @IsEmail()
@@ -27,11 +20,15 @@ export class CreateResponsableDto {
     email?: string;
 
     @IsInt()
-    departamentoId: number;
+    idUnidadAdscripcion: number;
 
     @IsString()
     @IsOptional()
     cargo?: string;
+
+    @IsEnum(TipoResponsableSudebip)
+    @IsOptional()
+    tipoResponsableSudebip?: TipoResponsableSudebip;
 
     @IsString()
     @IsOptional()
@@ -44,8 +41,4 @@ export class CreateResponsableDto {
     @IsString()
     @IsOptional()
     observaciones?: string;
-
-    @IsBoolean()
-    @IsOptional()
-    activo?: boolean;
 }

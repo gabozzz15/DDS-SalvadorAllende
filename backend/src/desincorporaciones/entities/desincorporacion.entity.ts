@@ -14,11 +14,11 @@ export enum MotivoDesincorporacion {
     PERDIDA = 'PERDIDA',
     DAÑO = 'DAÑO',
     OBSOLESCENCIA = 'OBSOLESCENCIA',
-    DONACION = 'DONACION',
+    DONACION_BAJA = 'DONACION_BAJA',
     OTRO = 'OTRO',
 }
 
-export enum EstadoDesincorporacion {
+export enum EstatusDesincorporacion {
     PENDIENTE = 'PENDIENTE',
     APROBADA = 'APROBADA',
     RECHAZADA = 'RECHAZADA',
@@ -27,15 +27,15 @@ export enum EstadoDesincorporacion {
 
 @Entity('desincorporaciones')
 export class Desincorporacion {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn({ name: 'id_desincorporacion' })
     id: number;
 
-    @Column({ name: 'bien_id' })
+    @Column({ name: 'id_bien', unique: true })
     @Index()
-    bienId: number;
+    idBien: number;
 
     @ManyToOne(() => Bien)
-    @JoinColumn({ name: 'bien_id' })
+    @JoinColumn({ name: 'id_bien' })
     bien: Bien;
 
     @Column({
@@ -60,11 +60,11 @@ export class Desincorporacion {
 
     @Column({
         type: 'enum',
-        enum: EstadoDesincorporacion,
-        default: EstadoDesincorporacion.PENDIENTE,
+        enum: EstatusDesincorporacion,
+        default: EstatusDesincorporacion.PENDIENTE,
     })
     @Index()
-    estado: EstadoDesincorporacion;
+    estatus: EstatusDesincorporacion;
 
     @Column({ name: 'valor_residual', type: 'decimal', precision: 15, scale: 2, default: 0 })
     valorResidual: number;

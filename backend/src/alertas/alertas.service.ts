@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Alerta, TipoAlerta, SeveridadAlerta } from './entities/alerta.entity';
 import { BienesService } from '../bienes/bienes.service';
-import { EstadoBien, CondicionBien } from '../bienes/entities/bien.entity';
+import { EstatusUso, CondicionFisica } from '../bienes/entities/bien.entity';
 
 @Injectable()
 export class AlertasService {
@@ -89,18 +89,14 @@ export class AlertasService {
         await this.alertasRepository.remove(alerta);
     }
 
-    /**
-     * Genera alertas automáticas basadas en el estado de los bienes
-     */
     async generateAutomaticAlerts(): Promise<void> {
-        // Alertas por bienes obsoletos o en mal estado
         const bienes = await this.bienesService.findAll();
 
         for (const bien of bienes) {
             // Alerta por inventario vencido (obsoleto o inutilizable)
             if (
-                bien.condicion === CondicionBien.OBSOLETO ||
-                bien.condicion === CondicionBien.MALO
+                bien.condicionFisica === CondicionFisica.OBSOLETO ||
+                bien.condicionFisica === CondicionFisica.MALO
             ) {
                 const existingAlert = await this.alertasRepository.findOne({
                     where: {
@@ -114,15 +110,15 @@ export class AlertasService {
                     await this.create(
                         TipoAlerta.INVENTARIO_VENCIDO,
                         SeveridadAlerta.ALTA,
-                        `Bien en condición ${bien.condicion}`,
-                        `El bien "${bien.descripcion}" (${bien.codigoInterno}) está en condición ${bien.condicion} y requiere atención`,
+                        `Bien en condición ${bien.condicionFisica}`,
+                        `El bien "${bien.descripcion}" (${bien.codigoInterno}) está en condición ${bien.condicionFisica} y requiere atención`,
                         bien.id,
                     );
                 }
             }
 
-            // Alerta por bienes sin trazabilidad (sin responsable o ubicación)
-            if (!bien.responsableId || !bien.ubicacionId) {
+            // Alerta por bienes sin trazabilidad
+            if (!bien.idResponsableUso || !bien.idUnidadAdministrativa) {
                 const existingAlert = await this.alertasRepository.findOne({
                     where: {
                         bienId: bien.id,
@@ -136,7 +132,7 @@ export class AlertasService {
                         TipoAlerta.SIN_TRAZABILIDAD,
                         SeveridadAlerta.MEDIA,
                         'Bien sin trazabilidad completa',
-                        `El bien "${bien.descripcion}" (${bien.codigoInterno}) no tiene ${!bien.responsableId ? 'responsable' : 'ubicación'} asignado`,
+                        `El bien "${bien.descripcion}" (${bien.codigoInterno}) no tiene ${!bien.idResponsableUso ? 'responsable' : 'ubicación'} asignado`,
                         bien.id,
                     );
                 }

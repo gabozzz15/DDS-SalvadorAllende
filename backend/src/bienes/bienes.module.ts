@@ -5,15 +5,17 @@ import { BienesController } from './bienes.controller';
 import { Bien } from './entities/bien.entity';
 import { BarcodeService } from './services/barcode.service';
 import { CategoriasSudebipModule } from '../categorias-sudebip/categorias-sudebip.module';
-import { UbicacionesModule } from '../ubicaciones/ubicaciones.module';
+import { UnidadesAdministrativasModule } from '../unidades-administrativas/unidades-administrativas.module';
 import { ResponsablesModule } from '../responsables/responsables.module';
+import { TiposOrigenModule } from '../tipos-origen/tipos-origen.module';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Bien]),
         CategoriasSudebipModule,
-        UbicacionesModule,
+        UnidadesAdministrativasModule,
         ResponsablesModule,
+        TiposOrigenModule,
     ],
     controllers: [BienesController],
     providers: [BienesService, BarcodeService],

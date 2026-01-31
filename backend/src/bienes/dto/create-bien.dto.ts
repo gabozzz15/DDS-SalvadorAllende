@@ -8,15 +8,9 @@ import {
     MinLength,
     Matches,
 } from 'class-validator';
-import { EstadoBien, CondicionBien, TipoOrigen } from '../entities/bien.entity';
+import { EstatusUso, CondicionFisica } from '../entities/bien.entity';
 
 export class CreateBienDto {
-    @IsString()
-    @Matches(/^\d{5}-\d{4}$/, {
-        message: 'Código SUDEBIP debe tener formato XXXXX-XXXX (5 dígitos, guión, 4 dígitos)',
-    })
-    codigoSudebip: string;
-
     @IsString()
     @MinLength(3)
     codigoInterno: string;
@@ -26,46 +20,49 @@ export class CreateBienDto {
 
     @IsString()
     @IsOptional()
+    serialBien?: string;
+
+    @IsString()
+    @IsOptional()
     marca?: string;
 
     @IsString()
     @IsOptional()
     modelo?: string;
 
-    @IsString()
+    @IsInt()
+    idCategoriaEspecifica: number;
+
+    @IsInt()
+    idUnidadAdministrativa: number;
+
+    @IsInt()
+    idResponsableUso: number;
+
+    @IsInt()
+    idTipoOrigen: number;
+
+    @IsEnum(EstatusUso)
     @IsOptional()
-    serial?: string;
+    estatusUso?: EstatusUso;
+
+    @IsEnum(CondicionFisica)
+    @IsOptional()
+    condicionFisica?: CondicionFisica;
 
     @IsDateString()
     @IsOptional()
     fechaAdquisicion?: string;
 
-    @IsEnum(EstadoBien)
+    @IsDateString()
     @IsOptional()
-    estado?: EstadoBien;
-
-    @IsEnum(CondicionBien)
-    @IsOptional()
-    condicion?: CondicionBien;
-
-    @IsInt()
-    ubicacionId: number;
-
-    @IsInt()
-    responsableId: number;
+    fechaIngreso?: string;
 
     @IsString()
     @IsOptional()
-    observaciones?: string;
-
-    @IsInt()
-    categoriaSudebipId: number;
-
-    @IsEnum(TipoOrigen)
-    @IsOptional()
-    tipoOrigen?: TipoOrigen;
+    observacion?: string;
 
     @IsInt()
     @IsOptional()
-    tiempoRegistro?: number;
+    tiempoRegistro?: number; // Tiempo en segundos para KPI
 }

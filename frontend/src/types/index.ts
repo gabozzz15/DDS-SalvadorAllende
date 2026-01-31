@@ -19,24 +19,35 @@ export interface LoginResponse {
 
 export interface Bien {
     id: number;
-    codigoSudebip: string;
     codigoInterno: string;
     codigoBarras?: string;
     descripcion: string;
+    serialBien?: string;
     marca?: string;
     modelo?: string;
-    serial?: string;
+    idCategoriaEspecifica: number;
+    idUnidadAdministrativa: number;
+    idResponsableUso: number;
+    idTipoOrigen: number;
+    estatusUso: 'ACTIVO' | 'INACTIVO' | 'EN_REPARACION' | 'DESINCORPORADO';
+    condicionFisica: 'EXCELENTE' | 'BUENO' | 'REGULAR' | 'MALO' | 'OBSOLETO';
     fechaAdquisicion?: string;
-    estado: 'ACTIVO' | 'INACTIVO' | 'EN_REPARACION' | 'DESINCORPORADO';
-    condicion: 'EXCELENTE' | 'BUENO' | 'REGULAR' | 'MALO' | 'OBSOLETO';
-    ubicacionId: number;
-    responsableId: number;
-    categoriaSudebipId: number;
-    observaciones?: string;
-    tipoOrigen?: 'DONACION' | 'COMPRA' | 'PRESTAMO_FUNDASALUD';
-    tiempoRegistro?: number;
+    fechaIngreso?: string;
+    fechaInicioRegistro: string;
+    fechaFinalizaRegistro?: string;
+    observacion?: string;
     createdAt: string;
     updatedAt: string;
+    createdBy?: number;
+}
+
+export interface UnidadAdministrativa {
+    id: number;
+    codigoUnidadSudebip: string;
+    nombre: string;
+    descripcion?: string;
+    responsableUnidad?: string;
+    activo: boolean;
 }
 
 export interface Responsable {
@@ -46,23 +57,30 @@ export interface Responsable {
     apellidos: string;
     telefono?: string;
     email?: string;
-    departamentoId: number;
+    idUnidadAdscripcion: number;
     cargo?: string;
+    tipoResponsableSudebip: 'D' | 'U' | 'C';
     firmaDigital?: string;
     aceptaResponsabilidad: boolean;
     fechaAceptacion?: string;
+    observaciones?: string;
     activo: boolean;
+}
+
+export interface TipoOrigen {
+    id: number;
+    nombre: string;
 }
 
 export interface Transferencia {
     id: number;
-    bienId: number;
+    idBien: number;
     ubicacionOrigenId: number;
     ubicacionDestinoId: number;
     responsableOrigenId: number;
     responsableDestinoId: number;
     motivo: string;
-    estado: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
+    estatus: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
     fechaSolicitud: string;
     fechaAprobacion?: string;
     fechaEjecucion?: string;
@@ -73,12 +91,12 @@ export interface Transferencia {
 
 export interface Desincorporacion {
     id: number;
-    bienId: number;
-    motivo: 'PERDIDA' | 'DAÑO' | 'OBSOLESCENCIA' | 'DONACION' | 'OTRO';
+    idBien: number;
+    motivo: 'PERDIDA' | 'DAÑO' | 'OBSOLESCENCIA' | 'DONACION_BAJA' | 'OTRO';
     descripcionMotivo: string;
     valorResidual?: number;
     documentoRespaldo?: string;
-    estado: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
+    estatus: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
     fechaSolicitud: string;
     fechaAprobacion?: string;
     fechaEjecucion?: string;
@@ -97,4 +115,12 @@ export interface Alerta {
     leida: boolean;
     fechaCreacion: string;
     fechaLectura?: string;
+}
+
+export interface CategoriaSudebip {
+    id: number;
+    codigo: string;
+    nivel: 'GENERAL' | 'SUBCATEGORIA' | 'ESPECIFICA';
+    descripcion: string;
+    categoriaPadreId?: number;
 }

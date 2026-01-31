@@ -1,15 +1,14 @@
-import { IsInt, IsString, IsEnum, IsNumber, IsOptional, MinLength } from 'class-validator';
+import { IsInt, IsString, IsEnum, IsOptional, IsNumber } from 'class-validator';
 import { MotivoDesincorporacion } from '../entities/desincorporacion.entity';
 
 export class CreateDesincorporacionDto {
     @IsInt()
-    bienId: number;
+    idBien: number;
 
     @IsEnum(MotivoDesincorporacion)
     motivo: MotivoDesincorporacion;
 
     @IsString()
-    @MinLength(10)
     descripcionMotivo: string;
 
     @IsNumber()
@@ -19,4 +18,8 @@ export class CreateDesincorporacionDto {
     @IsString()
     @IsOptional()
     documentoRespaldo?: string;
+
+    @IsString()
+    @IsOptional()
+    observaciones?: string;
 }

@@ -12,12 +12,11 @@ import {
 } from '@nestjs/common';
 import { DesincorporacionesService } from './desincorporaciones.service';
 import { CreateDesincorporacionDto } from './dto/create-desincorporacion.dto';
-import { UpdateDesincorporacionDto } from './dto/update-desincorporacion.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
-import { EstadoDesincorporacion } from './entities/desincorporacion.entity';
+import { EstatusDesincorporacion } from './entities/desincorporacion.entity';
 
 @Controller('desincorporaciones')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -25,24 +24,18 @@ export class DesincorporacionesController {
     constructor(private readonly desincorporacionesService: DesincorporacionesService) { }
 
     @Post()
-    @Roles(UserRole.ADMIN)
     create(@Body() createDesincorporacionDto: CreateDesincorporacionDto, @Request() req) {
         return this.desincorporacionesService.create(createDesincorporacionDto, req.user.id);
     }
 
     @Get()
-    findAll(
-        @Query('estado') estado?: EstadoDesincorporacion,
-        @Query('bienId') bienId?: string,
-    ) {
+    findAll(@Query('estatus') estatus?: EstatusDesincorporacion) {
         return this.desincorporacionesService.findAll({
-            estado,
-            bienId: bienId ? +bienId : undefined,
+            estatus,
         });
     }
 
     @Get('statistics')
-    @Roles(UserRole.ADMIN)
     getStatistics() {
         return this.desincorporacionesService.getStatistics();
     }
@@ -52,37 +45,19 @@ export class DesincorporacionesController {
         return this.desincorporacionesService.findOne(+id);
     }
 
-    @Patch(':id')
+    @Patch(':id/aprobar')
     @Roles(UserRole.ADMIN)
-    update(@Param('id') id: string, @Body() updateDesincorporacionDto: UpdateDesincorporacionDto) {
-        return this.desincorporacionesService.update(+id, updateDesincorporacionDto);
+    aprobar(@Param('id') id: string, @Request() req) {
+        return this.desincorporacionesService.aprobar(+id, req.user.id);
     }
 
-    @Post(':id/approve')
+    @Patch(':id/rechazar')
     @Roles(UserRole.ADMIN)
-    approve(@Param('id') id: string, @Request() req) {
-        return this.desincorporacionesService.approve(+id, req.user.id);
-    }
-
-    @Post(':id/reject')
-    @Roles(UserRole.ADMIN)
-    reject(
+    rechazar(
         @Param('id') id: string,
-        @Body('observaciones') observaciones: string,
         @Request() req,
+        @Body('observaciones') observaciones?: string,
     ) {
-        return this.desincorporacionesService.reject(+id, req.user.id, observaciones);
-    }
-
-    @Post(':id/execute')
-    @Roles(UserRole.ADMIN)
-    execute(@Param('id') id: string) {
-        return this.desincorporacionesService.execute(+id);
-    }
-
-    @Delete(':id')
-    @Roles(UserRole.ADMIN)
-    cancel(@Param('id') id: string, @Request() req) {
-        return this.desincorporacionesService.cancel(+id, req.user.id);
+        return this.desincorporacionesService.rechazar(+id, req.user.id, observaciones);
     }
 }

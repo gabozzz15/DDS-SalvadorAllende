@@ -32,20 +32,20 @@ interface CategoriaSudebip {
 
 const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
     const [formData, setFormData] = useState({
-        codigoSudebip: '',
+        codigoInterno: '',
         codigoInterno: '',
         descripcion: '',
         marca: '',
         modelo: '',
-        serialBien: '',
+        serial: '',
         fechaAdquisicion: '',
-        estatusUso: 'ACTIVO',
-        condicionFisica: 'BUENO',
+        estado: 'ACTIVO',
+        condicion: 'BUENO',
         idUnidadAdministrativa: '',
         idResponsableUso: '',
         idCategoriaEspecifica: '',
         observacion: '',
-        idTipoOrigen: 1,
+        idTipoOrigen: 'COMPRA',
     });
 
     const [loading, setLoading] = useState(false);
@@ -57,37 +57,37 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
     useEffect(() => {
         if (bien && (mode === 'view' || mode === 'edit')) {
             setFormData({
-                codigoSudebip: '', // No se usa en edición
+                codigoInterno: bien.codigoInterno || '',
                 codigoInterno: bien.codigoInterno || '',
                 descripcion: bien.descripcion || '',
                 marca: bien.marca || '',
                 modelo: bien.modelo || '',
-                serialBien: bien.serialBien || '',
+                serial: bien.serialBien || '',
                 fechaAdquisicion: bien.fechaAdquisicion || '',
-                estatusUso: bien.estatusUso || 'ACTIVO',
-                condicionFisica: bien.condicionFisica || 'BUENO',
+                estado: bien.estatusUso || 'ACTIVO',
+                condicion: bien.condicionFisica || 'BUENO',
                 idUnidadAdministrativa: bien.idUnidadAdministrativa?.toString() || '',
                 idResponsableUso: bien.idResponsableUso?.toString() || '',
                 idCategoriaEspecifica: bien.idCategoriaEspecifica?.toString() || '',
                 observacion: bien.observacion || '',
-                idTipoOrigen: bien.idTipoOrigen || 1,
+                idTipoOrigen: bien.idTipoOrigen || 'COMPRA',
             });
         } else if (mode === 'create') {
             setFormData({
-                codigoSudebip: '',
+                codigoInterno: '',
                 codigoInterno: '',
                 descripcion: '',
                 marca: '',
                 modelo: '',
-                serialBien: '',
+                serial: '',
                 fechaAdquisicion: '',
-                estatusUso: 'ACTIVO',
-                condicionFisica: 'BUENO',
+                estado: 'ACTIVO',
+                condicion: 'BUENO',
                 idUnidadAdministrativa: '',
                 idResponsableUso: '',
                 idCategoriaEspecifica: '',
                 observacion: '',
-                idTipoOrigen: 1,
+                idTipoOrigen: 'COMPRA',
             });
         }
     }, [bien, mode]);
@@ -129,16 +129,16 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
         setError('');
 
         try {
-            // Para editar, NO enviar codigoSudebip, solo idCategoriaEspecifica
+            // Para editar, NO enviar codigoInterno, solo idCategoriaEspecifica
             const payload: any = {
                 codigoInterno: formData.codigoInterno,
                 descripcion: formData.descripcion,
                 marca: formData.marca,
                 modelo: formData.modelo,
-                serialBien: formData.serialBien,
+                serial: formData.serialBien,
                 fechaAdquisicion: formData.fechaAdquisicion,
-                estatusUso: formData.estatusUso,
-                condicionFisica: formData.condicionFisica,
+                estado: formData.estatusUso,
+                condicion: formData.condicionFisica,
                 idUnidadAdministrativa: parseInt(formData.idUnidadAdministrativa),
                 idResponsableUso: parseInt(formData.idResponsableUso),
                 idCategoriaEspecifica: parseInt(formData.idCategoriaEspecifica),
@@ -146,9 +146,9 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 idTipoOrigen: formData.idTipoOrigen,
             };
 
-            // Solo incluir codigoSudebip al crear
+            // Solo incluir codigoInterno al crear
             if (mode === 'create') {
-                payload.codigoSudebip = formData.codigoSudebip;
+                payload.codigoInterno = formData.codigoInterno;
                 if (startTime) {
                     const endTime = Date.now();
                     const durationSeconds = Math.round((endTime - startTime) / 1000);
@@ -214,7 +214,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                             </label>
                             <select
                                 value={formData.idTipoOrigen}
-                                onChange={(e) => setFormData({ ...formData, idTipoOrigen: parseInt(e.target.value) })}
+                                onChange={(e) => setFormData({ ...formData, idTipoOrigen: e.target.value })}
                                 className="input"
                                 required
                                 disabled={isViewMode}
@@ -232,8 +232,8 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                             </label>
                             <input
                                 type="text"
-                                value={formData.codigoSudebip}
-                                onChange={(e) => setFormData({ ...formData, codigoSudebip: e.target.value })}
+                                value={formData.codigoInterno}
+                                onChange={(e) => setFormData({ ...formData, codigoInterno: e.target.value })}
                                 className="input"
                                 placeholder="XXXXX-XXXX"
                                 required={mode === 'create'}
@@ -311,7 +311,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                             <input
                                 type="text"
                                 value={formData.serialBien}
-                                onChange={(e) => setFormData({ ...formData, serialBien: e.target.value })}
+                                onChange={(e) => setFormData({ ...formData, serial: e.target.value })}
                                 className="input"
                                 disabled={isViewMode}
                             />
@@ -336,7 +336,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Estado *</label>
                             <select
                                 value={formData.estatusUso}
-                                onChange={(e) => setFormData({ ...formData, estatusUso: e.target.value })}
+                                onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
                                 className="input"
                                 required
                                 disabled={isViewMode}
@@ -353,7 +353,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Condición *</label>
                             <select
                                 value={formData.condicionFisica}
-                                onChange={(e) => setFormData({ ...formData, condicionFisica: e.target.value })}
+                                onChange={(e) => setFormData({ ...formData, condicion: e.target.value })}
                                 className="input"
                                 required
                                 disabled={isViewMode}
@@ -429,10 +429,10 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                             </select>
                         </div>
 
-                        {/* Observaciones */}
+                        {/* observacion */}
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Observaciones
+                                observacion
                             </label>
                             <textarea
                                 value={formData.observacion}

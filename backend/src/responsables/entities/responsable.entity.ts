@@ -8,21 +8,29 @@ import {
     UpdateDateColumn,
     Index,
 } from 'typeorm';
-import { Ubicacion } from '../../ubicaciones/entities/ubicacion.entity';
+import { UnidadAdministrativa } from '../../unidades-administrativas/entities/unidad-administrativa.entity';
+
+export enum TipoResponsableSudebip {
+    D = 'D', // Administrativo
+    U = 'U', // Uso Directo
+    C = 'C', // Cuido Directo
+}
 
 @Entity('responsables')
 export class Responsable {
-    @PrimaryGeneratedColumn()
+    @PrimaryGeneratedColumn({ name: 'id_responsable' })
     id: number;
 
-    @Column({ unique: true, length: 20 })
+    @Column({ length: 20, unique: true })
     @Index()
     cedula: string;
 
     @Column({ length: 100 })
+    @Index()
     nombres: string;
 
     @Column({ length: 100 })
+    @Index()
     apellidos: string;
 
     @Column({ length: 20, nullable: true })
@@ -31,16 +39,25 @@ export class Responsable {
     @Column({ length: 100, nullable: true })
     email: string;
 
-    @Column({ name: 'departamento_id' })
+    @Column({ name: 'id_unidad_adscripcion' })
     @Index()
-    departamentoId: number;
+    idUnidadAdscripcion: number;
 
-    @ManyToOne(() => Ubicacion)
-    @JoinColumn({ name: 'departamento_id' })
-    departamento: Ubicacion;
+    @ManyToOne(() => UnidadAdministrativa)
+    @JoinColumn({ name: 'id_unidad_adscripcion' })
+    unidadAdscripcion: UnidadAdministrativa;
 
     @Column({ length: 100, nullable: true })
     cargo: string;
+
+    @Column({
+        name: 'tipo_responsable_sudebip',
+        type: 'enum',
+        enum: TipoResponsableSudebip,
+        default: TipoResponsableSudebip.U,
+    })
+    @Index()
+    tipoResponsableSudebip: TipoResponsableSudebip;
 
     @Column({ name: 'firma_digital', type: 'longtext', nullable: true })
     firmaDigital: string;
@@ -63,9 +80,4 @@ export class Responsable {
 
     @UpdateDateColumn({ name: 'updated_at' })
     updatedAt: Date;
-
-    // Computed property
-    get nombreCompleto(): string {
-        return `${this.nombres} ${this.apellidos}`;
-    }
 }

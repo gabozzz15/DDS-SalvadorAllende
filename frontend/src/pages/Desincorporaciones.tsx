@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface Desincorporacion {
     id: number;
-    bienId: number;
+    idBien: number;
     motivo: 'PERDIDA' | 'DAÑO' | 'OBSOLESCENCIA' | 'DONACION' | 'OTRO';
     descripcionMotivo: string;
     valorResidual?: number;
@@ -16,7 +16,7 @@ interface Desincorporacion {
     fechaEjecucion?: string;
     solicitadoPor: number;
     aprobadoPor?: number;
-    observaciones?: string;
+    observacion?: string;
 }
 
 interface Bien {
@@ -41,7 +41,7 @@ const Desincorporaciones = () => {
 
     // Form data
     const [formData, setFormData] = useState({
-        bienId: '',
+        idBien: '',
         motivo: 'OBSOLESCENCIA',
         descripcionMotivo: '',
         valorResidual: '',
@@ -57,8 +57,8 @@ const Desincorporaciones = () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
-            if (estadoFilter) params.append('estado', estadoFilter);
-            if (bienFilter) params.append('bienId', bienFilter);
+            if (estadoFilter) params.append('estatusUso', estadoFilter);
+            if (bienFilter) params.append('idBien', bienFilter);
 
             const response = await api.get(`/desincorporaciones?${params.toString()}`);
             setDesincorporaciones(response.data);
@@ -80,7 +80,7 @@ const Desincorporaciones = () => {
 
     const handleCreate = () => {
         setFormData({
-            bienId: '',
+            idBien: '',
             motivo: 'OBSOLESCENCIA',
             descripcionMotivo: '',
             valorResidual: '',
@@ -100,7 +100,7 @@ const Desincorporaciones = () => {
         e.preventDefault();
         try {
             const payload: any = {
-                bienId: parseInt(formData.bienId),
+                idBien: parseInt(formData.idBien),
                 motivo: formData.motivo,
                 descripcionMotivo: formData.descripcionMotivo,
             };
@@ -126,7 +126,7 @@ const Desincorporaciones = () => {
         if (!window.confirm('¿Está seguro de aprobar esta desincorporación?')) return;
 
         try {
-            await api.post(`/desincorporaciones/${id}/approve`);
+            await api.post(`/desincorporaciones/${id}/aprobar`);
             fetchDesincorporaciones();
         } catch (error: any) {
             console.error('Error aprobando desincorporacion:', error);
@@ -139,7 +139,7 @@ const Desincorporaciones = () => {
         if (motivo === null) return;
 
         try {
-            await api.post(`/desincorporaciones/${id}/reject`, { observaciones: motivo });
+            await api.post(`/desincorporaciones/${id}/rechazar`, { observacion: motivo });
             fetchDesincorporaciones();
         } catch (error: any) {
             console.error('Error rechazando desincorporacion:', error);
@@ -264,7 +264,7 @@ const Desincorporaciones = () => {
                                     <tr key={item.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
-                                                Bien #{item.bienId}
+                                                Bien #{item.idBien}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -276,8 +276,8 @@ const Desincorporaciones = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`badge ${getEstadoBadge(item.estado)}`}>
-                                                {item.estado}
+                                            <span className={`badge ${getEstadoBadge(item.estatusUso)}`}>
+                                                {item.estatusUso}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -292,7 +292,7 @@ const Desincorporaciones = () => {
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
-                                                {isAdmin && item.estado === 'PENDIENTE' && (
+                                                {isAdmin && item.estatusUso === 'PENDIENTE' && (
                                                     <>
                                                         <button
                                                             onClick={() => handleAprobar(item.id)}
@@ -310,7 +310,7 @@ const Desincorporaciones = () => {
                                                         </button>
                                                     </>
                                                 )}
-                                                {isAdmin && item.estado === 'APROBADA' && (
+                                                {isAdmin && item.estatusUso === 'APROBADA' && (
                                                     <button
                                                         onClick={() => handleEjecutar(item.id)}
                                                         className="text-purple-600 hover:text-purple-900"
@@ -356,8 +356,8 @@ const Desincorporaciones = () => {
                                             Bien *
                                         </label>
                                         <select
-                                            value={formData.bienId}
-                                            onChange={(e) => setFormData({ ...formData, bienId: e.target.value })}
+                                            value={formData.idBien}
+                                            onChange={(e) => setFormData({ ...formData, idBien: e.target.value })}
                                             className="input"
                                             required
                                         >
@@ -479,11 +479,11 @@ const Desincorporaciones = () => {
                                         </p>
                                     </div>
 
-                                    {selectedDesincorporacion!.observaciones && (
+                                    {selectedDesincorporacion!.observacion && (
                                         <div>
                                             <label className="text-sm font-medium text-gray-500">Observaciones (Rechazo)</label>
                                             <p className="mt-1 text-red-600 bg-red-50 p-3 rounded-md">
-                                                {selectedDesincorporacion!.observaciones}
+                                                {selectedDesincorporacion!.observacion}
                                             </p>
                                         </div>
                                     )}

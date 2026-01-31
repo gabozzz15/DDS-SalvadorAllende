@@ -1,48 +1,48 @@
 -- ============================================
--- Datos iniciales para el sistema (VERSIÓN CORREGIDA)
+-- Seeds para Base de Datos Normalizada SUDEBIP
+-- Sistema de Gestión de Bienes - Salvador Allende
 -- ============================================
 
 USE bienes_salvador_allende;
 
--- ============================================
--- Usuario administrador por defecto
--- Password: admin123 (debe cambiarse en producción)
--- Hash bcrypt generado para 'admin123'
--- ============================================
-INSERT INTO users (username, password, nombre_completo, email, role) VALUES
-('admin', '$2a$12$UXrNnNwQ9.sM2pISWbW7Ju8o4cyPBZj03aDirOQt.P1aiZXg4lZsm', 'Administrador del Sistema', 'admin@salvadorallende.gob.ve', 'ADMIN'),
-('usuario1', '$2a$12$UXrNnNwQ9.sM2pISWbW7Ju8o4cyPBZj03aDirOQt.P1aiZXg4lZsm', 'Usuario Estándar', 'usuario@salvadorallende.gob.ve', 'USER');
+-- Deshabilitar verificación de llaves foráneas temporalmente
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Limpiar tablas existentes
+TRUNCATE TABLE fotos;
+TRUNCATE TABLE mantenimientos;
+TRUNCATE TABLE alertas;
+TRUNCATE TABLE logs_auditoria;
+TRUNCATE TABLE desincorporaciones;
+TRUNCATE TABLE transferencias;
+TRUNCATE TABLE bienes;
+TRUNCATE TABLE responsables;
+TRUNCATE TABLE unidades_administrativas;
+TRUNCATE TABLE categorias_sudebip;
+TRUNCATE TABLE tipos_origen;
+TRUNCATE TABLE users;
+
+-- Rehabilitar verificación de llaves foráneas
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================
--- Ubicaciones del ambulatorio
+-- USUARIOS DEL SISTEMA
 -- ============================================
-INSERT INTO ubicaciones (nombre, descripcion, responsable) VALUES
-('Dirección General', 'Oficina de la dirección del ambulatorio', 'Dr. Director General'),
-('Departamento de Bienes', 'Área de gestión de bienes institucionales', 'Lic. Responsable de Bienes'),
-('Emergencias', 'Área de atención de emergencias', 'Dr. Jefe de Emergencias'),
-('Consultas Externas', 'Área de consultas ambulatorias', 'Dra. Jefa de Consultas'),
-('Laboratorio', 'Laboratorio clínico', 'Bioanalista Responsable'),
-('Rayos X', 'Departamento de imagenología', 'Técnico Radiólogo'),
-('Farmacia', 'Farmacia institucional', 'Farmacéutico Responsable'),
-('Almacén General', 'Almacén de suministros', 'Encargado de Almacén'),
-('Mantenimiento', 'Departamento de mantenimiento', 'Jefe de Mantenimiento'),
-('Administración', 'Área administrativa', 'Administrador General');
+INSERT INTO users (username, password, nombre_completo, email, role, activo) VALUES
+('admin', '$2a$12$FMhrmDQhiCT3KazdJj4plO6kT7zfuM70PKYU9SdwRtfefWKel7S36', 'Administrador del Sistema', 'admin@salvadorallende.gob.ve', 'ADMIN', TRUE),
+('usuario1', '$2a$12$FMhrmDQhiCT3KazdJj4plO6kT7zfuM70PKYU9SdwRtfefWKel7S36', 'María González', 'mgonzalez@salvadorallende.gob.ve', 'USER', TRUE),
+('usuario2', '$2a$12$FMhrmDQhiCT3KazdJj4plO6kT7zfuM70PKYU9SdwRtfefWKel7S36', 'Carlos Pérez', 'cperez@salvadorallende.gob.ve', 'USER', TRUE);
 
 -- ============================================
--- Responsables de bienes
+-- TIPOS DE ORIGEN
 -- ============================================
-INSERT INTO responsables (cedula, nombres, apellidos, telefono, email, departamento_id, cargo, acepta_responsabilidad, fecha_aceptacion) VALUES
-('V-12345678', 'Carlos', 'Rodríguez', '0414-1234567', 'carlos.rodriguez@salvadorallende.gob.ve', 3, 'Jefe de Emergencias', TRUE, NOW()),
-('V-23456789', 'María', 'González', '0424-2345678', 'maria.gonzalez@salvadorallende.gob.ve', 10, 'Administrador General', TRUE, NOW()),
-('V-34567890', 'José', 'Pérez', '0412-3456789', 'jose.perez@salvadorallende.gob.ve', 5, 'Bioanalista Jefe', TRUE, NOW()),
-('V-45678901', 'Ana', 'Martínez', '0416-4567890', 'ana.martinez@salvadorallende.gob.ve', 4, 'Médico Internista', TRUE, NOW()),
-('V-56789012', 'Luis', 'Hernández', '0426-5678901', 'luis.hernandez@salvadorallende.gob.ve', 6, 'Técnico Radiólogo', TRUE, NOW()),
-('V-67890123', 'Carmen', 'López', '0414-6789012', 'carmen.lopez@salvadorallende.gob.ve', 7, 'Farmacéutico', TRUE, NOW()),
-('V-78901234', 'Pedro', 'Ramírez', '0424-7890123', 'pedro.ramirez@salvadorallende.gob.ve', 9, 'Jefe de Mantenimiento', TRUE, NOW()),
-('V-89012345', 'Laura', 'Torres', '0412-8901234', 'laura.torres@salvadorallende.gob.ve', 2, 'Asistente de Bienes', TRUE, NOW());
+INSERT INTO tipos_origen (nombre) VALUES
+('COMPRA'),
+('DONACION'),
+('PRESTAMO_FUNDASALUD');
 
 -- ============================================
--- Categorías SUDEBIP - Nivel 1: Categorías Generales
+-- CATEGORÍAS SUDEBIP - Nivel 1: Categorías Generales
 -- ============================================
 INSERT INTO categorias_sudebip (codigo, nivel, descripcion, categoria_padre_id) VALUES
 ('14000-0000', 'GENERAL', 'Equipos médicos y de laboratorio', NULL),
@@ -52,7 +52,7 @@ INSERT INTO categorias_sudebip (codigo, nivel, descripcion, categoria_padre_id) 
 ('31000-0000', 'GENERAL', 'Mobiliario y equipos de oficina', NULL);
 
 -- ============================================
--- Categorías SUDEBIP - Nivel 2: Subcategorías
+-- CATEGORÍAS SUDEBIP - Nivel 2: Subcategorías
 -- ============================================
 INSERT INTO categorias_sudebip (codigo, nivel, descripcion, categoria_padre_id) VALUES
 ('14010-0000', 'SUBCATEGORIA', 'Equipos médicos quirúrgicos', 1),
@@ -65,7 +65,7 @@ INSERT INTO categorias_sudebip (codigo, nivel, descripcion, categoria_padre_id) 
 ('31020-0000', 'SUBCATEGORIA', 'Mobiliario médico', 5);
 
 -- ============================================
--- Categorías SUDEBIP - Nivel 3: Categorías Específicas
+-- CATEGORÍAS SUDEBIP - Nivel 3: Categorías Específicas
 -- ============================================
 INSERT INTO categorias_sudebip (codigo, nivel, descripcion, categoria_padre_id) VALUES
 ('14010-0001', 'ESPECIFICA', 'Camillas', 6),
@@ -91,125 +91,82 @@ INSERT INTO categorias_sudebip (codigo, nivel, descripcion, categoria_padre_id) 
 ('31020-0002', 'ESPECIFICA', 'Mesas de exploración', 13);
 
 -- ============================================
--- Bienes de ejemplo
+-- UNIDADES ADMINISTRATIVAS
 -- ============================================
-INSERT INTO bienes (
-    codigo_sudebip, 
-    codigo_interno, 
-    codigo_barras,
-    descripcion, 
-    marca, 
-    modelo, 
-    serial,
-    fecha_adquisicion,
-    estado,
-    condicion,
-    ubicacion_id,
-    responsable_id,
-    categoria_sudebip_id,
-    tipo_origen,
-    tiempo_registro,
-    created_by
-) VALUES
--- Ambulancia
-(
-    '15010-0001',
-    'SA-AMB-001',
-    'SA-AMB-001',
-    'Ambulancia tipo II equipada',
-    'Toyota',
-    'Hiace 2020',
-    'ABC123456',
-    '2020-03-15',
-    'ACTIVO',
-    'EXCELENTE',
-    3,
-    1,
-    19,
-    'COMPRA',
-    120,
-    1
-),
--- Computadora
-(
-    '16010-0001',
-    'SA-PC-001',
-    'SA-PC-001',
-    'Computadora de escritorio para administración',
-    'HP',
-    'ProDesk 400 G6',
-    'PC789456',
-    '2021-06-10',
-    'ACTIVO',
-    'BUENO',
-    10,
-    2,
-    21,
-    'COMPRA',
-    180,
-    1
-),
--- Electrocardiógrafo
-(
-    '14010-0003',
-    'SA-ECG-001',
-    'SA-ECG-001',
-    'Electrocardiógrafo digital de 12 derivaciones',
-    'Philips',
-    'PageWriter TC70',
-    'ECG456789',
-    '2019-11-20',
-    'ACTIVO',
-    'BUENO',
-    3,
-    1,
-    16,
-    'DONACION',
-    200,
-    1
-),
--- Microscopio
-(
-    '14020-0001',
-    'SA-MIC-001',
-    'SA-MIC-001',
-    'Microscopio binocular',
-    'Olympus',
-    'CX23',
-    'MIC123456',
-    '2020-08-05',
-    'ACTIVO',
-    'EXCELENTE',
-    5,
-    3,
-    18,
-    'PRESTAMO_FUNDASALUD',
-    150,
-    1
-),
--- Impresora
-(
-    '16020-0001',
-    'SA-IMP-001',
-    'SA-IMP-001',
-    'Impresora multifuncional láser',
-    'Canon',
-    'imageRUNNER 2206N',
-    'IMP789012',
-    '2021-02-20',
-    'ACTIVO',
-    'BUENO',
-    10,
-    2,
-    24,
-    'COMPRA',
-    90,
-    1
-);
+INSERT INTO unidades_administrativas (codigo_unidad_sudebip, nombre, descripcion, responsable_unidad) VALUES
+('UA-001', 'Dirección General', 'Dirección administrativa del ambulatorio', 'Dr. Juan Pérez'),
+('UA-002', 'Consulta Externa', 'Área de consultas médicas', 'Dra. Ana Martínez'),
+('UA-003', 'Emergencias', 'Servicio de emergencias 24/7', 'Dr. Carlos Rodríguez'),
+('UA-004', 'Laboratorio', 'Laboratorio clínico', 'Bioanalista María López'),
+('UA-005', 'Radiología', 'Servicio de radiología e imágenes', 'Técnico Pedro Sánchez'),
+('UA-006', 'Farmacia', 'Farmacia del ambulatorio', 'Farmacéutica Laura Díaz'),
+('UA-007', 'Administración', 'Departamento administrativo', 'Lic. Roberto Gómez'),
+('UA-008', 'Mantenimiento', 'Departamento de mantenimiento', 'Ing. José Hernández'),
+('UA-009', 'Bienes', 'Departamento de bienes', 'Lic. Martha Trejo');
+;
 
 -- ============================================
--- Notas importantes
+-- RESPONSABLES
 -- ============================================
--- Los códigos de barras se generarán automáticamente en la aplicación
--- Las contraseñas deben cambiarse en producción
--- Este es un conjunto de datos mínimo para iniciar el sistema
+INSERT INTO responsables (cedula, nombres, apellidos, telefono, email, id_unidad_adscripcion, cargo, tipo_responsable_sudebip, acepta_responsabilidad) VALUES
+('V-12345678', 'Juan', 'Pérez', '0212-1234567', 'jperez@salvadorallende.gob.ve', 1, 'Director', 'D', TRUE),
+('V-23456789', 'Ana', 'Martínez', '0212-2345678', 'amartinez@salvadorallende.gob.ve', 2, 'Jefa de Consulta Externa', 'U', TRUE),
+('V-34567890', 'Carlos', 'Rodríguez', '0212-3456789', 'crodriguez@salvadorallende.gob.ve', 3, 'Jefe de Emergencias', 'U', TRUE),
+('V-45678901', 'María', 'López', '0212-4567890', 'mlopez@salvadorallende.gob.ve', 4, 'Bioanalista Jefe', 'U', TRUE),
+('V-56789012', 'Pedro', 'Sánchez', '0212-5678901', 'psanchez@salvadorallende.gob.ve', 5, 'Técnico Radiólogo', 'U', TRUE),
+('V-67890123', 'Laura', 'Díaz', '0212-6789012', 'ldiaz@salvadorallende.gob.ve', 6, 'Farmacéutica', 'C', TRUE),
+('V-78901234', 'Roberto', 'Gómez', '0212-7890123', 'rgomez@salvadorallende.gob.ve', 7, 'Administrador', 'D', TRUE),
+('V-89012345', 'José', 'Hernández', '0212-8901234', 'jhernandez@salvadorallende.gob.ve', 8, 'Jefe de Mantenimiento', 'C', TRUE);
+
+-- ============================================
+-- BIENES DE EJEMPLO
+-- ============================================
+INSERT INTO bienes (
+    codigo_interno,
+    descripcion,
+    serial_bien,
+    marca,
+    modelo,
+    id_categoria_especifica,
+    id_unidad_administrativa,
+    id_responsable_uso,
+    id_tipo_origen,
+    estatus_uso,
+    condicion_fisica,
+    fecha_adquisicion,
+    fecha_ingreso,
+    observacion,
+    created_by
+) VALUES
+-- Equipos médicos
+('SA-CAM-001', 'Camilla de emergencia con ruedas', 'CAM2023001', 'MedEquip', 'CE-500', 14, 3, 3, 1, 'ACTIVO', 'BUENO', '2023-01-15', '2023-01-20', 'Camilla para traslado de pacientes', 1),
+('SA-DEF-001', 'Desfibrilador automático externo', 'DEF2023001', 'Philips', 'HeartStart', 15, 3, 3, 2, 'ACTIVO', 'EXCELENTE', '2023-02-10', '2023-02-15', 'Desfibrilador donado por fundación', 1),
+('SA-ECG-001', 'Electrocardiógrafo portátil', 'ECG2023001', 'GE Healthcare', 'MAC 600', 16, 2, 2, 1, 'ACTIVO', 'BUENO', '2023-03-05', '2023-03-10', NULL, 1),
+('SA-TEN-001', 'Tensiómetro digital', 'TEN2023001', 'Omron', 'HEM-7120', 17, 2, 2, 1, 'ACTIVO', 'BUENO', '2023-04-12', '2023-04-15', NULL, 1),
+
+-- Equipos de laboratorio
+('SA-MIC-001', 'Microscopio binocular', 'MIC2023001', 'Olympus', 'CX23', 18, 4, 4, 1, 'ACTIVO', 'EXCELENTE', '2023-05-20', '2023-05-25', NULL, 1),
+('SA-CEN-001', 'Centrífuga de laboratorio', 'CEN2023001', 'Hettich', 'EBA 200', 19, 4, 4, 1, 'ACTIVO', 'BUENO', '2023-06-10', '2023-06-15', NULL, 1),
+
+-- Equipos de transporte
+('SA-AMB-001', 'Ambulancia tipo II', 'AMB2023001', 'Toyota', 'Hiace 2023', 23, 3, 3, 3, 'ACTIVO', 'EXCELENTE', '2023-07-01', '2023-07-05', 'Préstamo de Fundasalud', 1),
+
+-- Equipos de computación
+('SA-PC-001', 'Computadora de escritorio', 'PC2023001', 'HP', 'ProDesk 400', 25, 7, 7, 1, 'ACTIVO', 'BUENO', '2023-08-15', '2023-08-20', NULL, 1),
+('SA-PC-002', 'Computadora de escritorio', 'PC2023002', 'HP', 'ProDesk 400', 25, 1, 1, 1, 'ACTIVO', 'BUENO', '2023-08-15', '2023-08-20', NULL, 1),
+('SA-LAP-001', 'Laptop', 'LAP2023001', 'Dell', 'Latitude 3420', 26, 1, 1, 1, 'ACTIVO', 'EXCELENTE', '2023-09-10', '2023-09-15', NULL, 1),
+('SA-IMP-001', 'Impresora multifuncional', 'IMP2023001', 'Canon', 'MF445dw', 28, 7, 7, 1, 'ACTIVO', 'BUENO', '2023-10-05', '2023-10-10', NULL, 1),
+
+-- Mobiliario
+('SA-ESC-001', 'Escritorio ejecutivo', 'ESC2023001', 'OfficeMax', 'EJ-200', 30, 1, 1, 1, 'ACTIVO', 'BUENO', '2023-11-01', '2023-11-05', NULL, 1),
+('SA-SIL-001', 'Silla ergonómica', 'SIL2023001', 'Herman Miller', 'Aeron', 31, 1, 1, 2, 'ACTIVO', 'EXCELENTE', '2023-11-15', '2023-11-20', 'Donación empresarial', 1);
+
+-- ============================================
+-- ALERTAS DE EJEMPLO
+-- ============================================
+INSERT INTO alertas (tipo, severidad, titulo, descripcion, id_bien, leida) VALUES
+('INVENTARIO_VENCIDO', 'MEDIA', 'Revisión de inventario pendiente', 'Se requiere revisión anual del inventario de bienes', NULL, FALSE),
+('AUDITORIA_PROXIMA', 'ALTA', 'Auditoría programada', 'Auditoría de bienes programada para el próximo mes', NULL, FALSE);
+
+-- Mensaje de finalización
+SELECT 'Seeds cargados exitosamente' AS Status;
