@@ -2,41 +2,9 @@ import { useEffect, useState } from 'react';
 import { Plus, Eye, Check, X } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { Transferencia, Bien, UnidadAdministrativa as Ubicacion, Responsable } from '../types';
 
-interface Transferencia {
-    id: number;
-    idBien: number;
-    ubicacionOrigenId: number;
-    ubicacionDestinoId: number;
-    responsableOrigenId: number;
-    responsableDestinoId: number;
-    motivo: string;
-    estado: 'PENDIENTE' | 'APROBADA' | 'RECHAZADA' | 'EJECUTADA';
-    fechaSolicitud: string;
-    fechaAprobacion?: string;
-    fechaEjecucion?: string;
-    solicitadoPor: number;
-    aprobadoPor?: number;
-    observacion?: string;
-}
 
-interface Bien {
-    id: number;
-    codigoInterno: string;
-    descripcion: string;
-}
-
-interface Ubicacion {
-    id: number;
-    nombre: string;
-}
-
-interface Responsable {
-    id: number;
-    nombres: string;
-    apellidos: string;
-    cedula: string;
-}
 
 const Transferencias = () => {
     const [transferencias, setTransferencias] = useState<Transferencia[]>([]);
@@ -60,7 +28,7 @@ const Transferencias = () => {
         ubicacionDestinoId: '',
         responsableDestinoId: '',
         motivo: '',
-        observacion: '',
+        observaciones: '',
     });
 
     useEffect(() => {
@@ -105,7 +73,7 @@ const Transferencias = () => {
             ubicacionDestinoId: '',
             responsableDestinoId: '',
             motivo: '',
-            observacion: '',
+            observaciones: '',
         });
         setModalMode('create');
         setModalOpen(true);
@@ -125,7 +93,7 @@ const Transferencias = () => {
                 ubicacionDestinoId: parseInt(formData.ubicacionDestinoId),
                 responsableDestinoId: parseInt(formData.responsableDestinoId),
                 motivo: formData.motivo,
-                observacion: formData.observacion,
+                observaciones: formData.observaciones,
             };
 
             await api.post('/transferencias', payload);
@@ -141,7 +109,7 @@ const Transferencias = () => {
         if (!window.confirm('¿Está seguro de aprobar esta transferencia? El bien se actualizará automáticamente.')) return;
 
         try {
-            await api.post(`/transferencias/${id}/aprobar`);
+            await api.patch(`/transferencias/${id}/aprobar`);
             fetchTransferencias();
         } catch (error: any) {
             console.error('Error aprobando transferencia:', error);
@@ -153,7 +121,10 @@ const Transferencias = () => {
         if (!window.confirm('¿Está seguro de rechazar esta transferencia?')) return;
 
         try {
-            await api.post(`/transferencias/${id}/rechazar`);
+            const observaciones = prompt('Ingrese motivo del rechazo:');
+            if (observaciones === null) return;
+
+            await api.patch(`/transferencias/${id}/rechazar`, { observaciones });
             fetchTransferencias();
         } catch (error: any) {
             console.error('Error rechazando transferencia:', error);
@@ -286,8 +257,8 @@ const Transferencias = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`badge ${getEstadoBadge(transferencia.estatusUso)}`}>
-                                                {transferencia.estatusUso}
+                                            <span className={`badge ${getEstadoBadge(transferencia.estatus)}`}>
+                                                {transferencia.estatus}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -302,7 +273,7 @@ const Transferencias = () => {
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
-                                                {isAdmin && transferencia.estatusUso === 'PENDIENTE' && (
+                                                {isAdmin && transferencia.estatus === 'PENDIENTE' && (
                                                     <>
                                                         <button
                                                             onClick={() => handleAprobar(transferencia.id)}
@@ -431,8 +402,8 @@ const Transferencias = () => {
                                             Observaciones
                                         </label>
                                         <textarea
-                                            value={formData.observacion}
-                                            onChange={(e) => setFormData({ ...formData, observacion: e.target.value })}
+                                            value={formData.observaciones}
+                                            onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
                                             className="input"
                                             rows={2}
                                         />
@@ -458,8 +429,8 @@ const Transferencias = () => {
                                     <div>
                                         <label className="text-sm font-medium text-gray-500">Estado</label>
                                         <p className="mt-1">
-                                            <span className={`badge ${getEstadoBadge(selectedTransferencia!.estado)}`}>
-                                                {selectedTransferencia!.estado}
+                                            <span className={`badge ${getEstadoBadge(selectedTransferencia!.estatus)}`}>
+                                                {selectedTransferencia!.estatus}
                                             </span>
                                         </p>
                                     </div>
@@ -467,10 +438,10 @@ const Transferencias = () => {
                                         <label className="text-sm font-medium text-gray-500">Motivo</label>
                                         <p className="mt-1 text-gray-900">{selectedTransferencia!.motivo}</p>
                                     </div>
-                                    {selectedTransferencia!.observacion && (
+                                    {selectedTransferencia!.observaciones && (
                                         <div>
                                             <label className="text-sm font-medium text-gray-500">Observaciones</label>
-                                            <p className="mt-1 text-gray-900">{selectedTransferencia!.observacion}</p>
+                                            <p className="mt-1 text-gray-900">{selectedTransferencia!.observaciones}</p>
                                         </div>
                                     )}
                                 </div>
