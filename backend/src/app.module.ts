@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -14,6 +15,8 @@ import { DesincorporacionesModule } from './desincorporaciones/desincorporacione
 import { FotosModule } from './fotos/fotos.module';
 import { AlertasModule } from './alertas/alertas.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
+import { AuditoriaInterceptor } from './auditoria/auditoria.interceptor';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -52,8 +55,15 @@ import { AuditoriaModule } from './auditoria/auditoria.module';
     FotosModule,
     AlertasModule,
     AuditoriaModule,
+    ReportesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditoriaInterceptor,
+    },
+  ],
 })
 export class AppModule { }

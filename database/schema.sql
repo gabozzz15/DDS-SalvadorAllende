@@ -108,6 +108,8 @@ CREATE TABLE bienes (
     responsable_id INT NOT NULL COMMENT 'Responsable actual del bien',
     observaciones TEXT,
     categoria_sudebip_id INT NOT NULL,
+    tipo_origen ENUM('COMPRA', 'DONACION', 'PRESTAMO_FUNDASALUD') DEFAULT 'COMPRA',
+    tiempo_registro INT COMMENT 'Tiempo en segundos tomado para registrar el bien',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_by INT,

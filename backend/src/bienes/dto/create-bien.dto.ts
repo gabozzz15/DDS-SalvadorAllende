@@ -8,12 +8,12 @@ import {
     MinLength,
     Matches,
 } from 'class-validator';
-import { EstadoBien, CondicionBien } from '../entities/bien.entity';
+import { EstadoBien, CondicionBien, TipoOrigen } from '../entities/bien.entity';
 
 export class CreateBienDto {
     @IsString()
-    @Matches(/^\d{4}-\d{4}$/, {
-        message: 'Código SUDEBIP debe tener formato XXXX-XXXX',
+    @Matches(/^\d{5}-\d{4}$/, {
+        message: 'Código SUDEBIP debe tener formato XXXXX-XXXX (5 dígitos, guión, 4 dígitos)',
     })
     codigoSudebip: string;
 
@@ -60,4 +60,12 @@ export class CreateBienDto {
 
     @IsInt()
     categoriaSudebipId: number;
+
+    @IsEnum(TipoOrigen)
+    @IsOptional()
+    tipoOrigen?: TipoOrigen;
+
+    @IsInt()
+    @IsOptional()
+    tiempoRegistro?: number;
 }

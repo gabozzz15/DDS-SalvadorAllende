@@ -29,6 +29,12 @@ export enum CondicionBien {
     OBSOLETO = 'OBSOLETO',
 }
 
+export enum TipoOrigen {
+    DONACION = 'DONACION',
+    COMPRA = 'COMPRA',
+    PRESTAMO_FUNDASALUD = 'PRESTAMO_FUNDASALUD',
+}
+
 @Entity('bienes')
 export class Bien {
     @PrimaryGeneratedColumn()
@@ -101,6 +107,17 @@ export class Bien {
     @ManyToOne(() => CategoriaSudebip)
     @JoinColumn({ name: 'categoria_sudebip_id' })
     categoriaSudebip: CategoriaSudebip;
+
+    @Column({
+        name: 'tipo_origen',
+        type: 'enum',
+        enum: TipoOrigen,
+        default: TipoOrigen.COMPRA,
+    })
+    tipoOrigen: TipoOrigen;
+
+    @Column({ name: 'tiempo_registro', type: 'int', nullable: true })
+    tiempoRegistro: number;
 
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;

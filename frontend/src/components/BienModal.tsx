@@ -45,6 +45,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
         responsableId: '',
         categoriaSudebipId: '',
         observaciones: '',
+        tipoOrigen: 'COMPRA',
     });
 
     const [loading, setLoading] = useState(false);
@@ -69,6 +70,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 responsableId: bien.responsableId?.toString() || '',
                 categoriaSudebipId: bien.categoriaSudebipId?.toString() || '',
                 observaciones: bien.observaciones || '',
+                tipoOrigen: bien.tipoOrigen || 'COMPRA',
             });
         } else if (mode === 'create') {
             setFormData({
@@ -85,6 +87,7 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 responsableId: '',
                 categoriaSudebipId: '',
                 observaciones: '',
+                tipoOrigen: 'COMPRA',
             });
         }
     }, [bien, mode]);
@@ -110,6 +113,16 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
         }
     }, [isOpen]);
 
+    const [startTime, setStartTime] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (isOpen && mode === 'create') {
+            setStartTime(Date.now());
+        } else {
+            setStartTime(null);
+        }
+    }, [isOpen, mode]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -130,11 +143,17 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 responsableId: parseInt(formData.responsableId),
                 categoriaSudebipId: parseInt(formData.categoriaSudebipId),
                 observaciones: formData.observaciones,
+                tipoOrigen: formData.tipoOrigen,
             };
 
             // Solo incluir codigoSudebip al crear
             if (mode === 'create') {
                 payload.codigoSudebip = formData.codigoSudebip;
+                if (startTime) {
+                    const endTime = Date.now();
+                    const durationSeconds = Math.round((endTime - startTime) / 1000);
+                    payload.tiempoRegistro = durationSeconds;
+                }
             }
 
             if (mode === 'create') {
@@ -146,7 +165,17 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
             onSave();
             onClose();
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Error al guardar el bien');
+            console.error('Error creating/updating bien:', err);
+            const errorMessage = err.response?.data?.message;
+
+            if (Array.isArray(errorMessage)) {
+                // Validation errors from class-validator
+                setError(errorMessage.join(', '));
+            } else if (typeof errorMessage === 'string') {
+                setError(errorMessage);
+            } else {
+                setError('Error al guardar el bien. Por favor verifica todos los campos.');
+            }
         } finally {
             setLoading(false);
         }
@@ -178,6 +207,24 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                     )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Tipo de Origen */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Tipo de Origen *
+                            </label>
+                            <select
+                                value={formData.tipoOrigen}
+                                onChange={(e) => setFormData({ ...formData, tipoOrigen: e.target.value })}
+                                className="input"
+                                required
+                                disabled={isViewMode}
+                            >
+                                <option value="COMPRA">Compra</option>
+                                <option value="DONACION">Donación</option>
+                                <option value="PRESTAMO_FUNDASALUD">Préstamo Fundasalud</option>
+                            </select>
+                        </div>
+
                         {/* Código SUDEBIP */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -188,10 +235,15 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                                 value={formData.codigoSudebip}
                                 onChange={(e) => setFormData({ ...formData, codigoSudebip: e.target.value })}
                                 className="input"
-                                placeholder="XXXX-XXXX"
+                                placeholder="XXXXX-XXXX"
                                 required={mode === 'create'}
                                 disabled={isViewMode || mode === 'edit'}
                             />
+                            {mode === 'create' && (
+                                <p className="mt-1 text-xs text-blue-600">
+                                    💡 Formato: XXXXX-XXXX (ej: 14010-0001). Debe existir en el catálogo SUDEBIP.
+                                </p>
+                            )}
                         </div>
 
                         {/* Código Interno */}
@@ -207,6 +259,11 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                                 required
                                 disabled={isViewMode}
                             />
+                            {mode === 'create' && (
+                                <p className="mt-1 text-xs text-blue-600">
+                                    💡 Código único del bien (ej: SA-AMB-001, SA-PC-001). Debe ser único en el sistema.
+                                </p>
+                            )}
                         </div>
 
                         {/* Descripción */}

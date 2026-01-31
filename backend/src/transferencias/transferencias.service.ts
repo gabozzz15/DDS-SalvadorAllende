@@ -191,6 +191,12 @@ export class TransferenciasService {
         const ejecutadas = await this.transferenciasRepository.count({ where: { estado: EstadoTransferencia.EJECUTADA } });
         const rechazadas = await this.transferenciasRepository.count({ where: { estado: EstadoTransferencia.RECHAZADA } });
 
+        // Tiempo promedio de aprobación (en horas)
+        const { avgTiempoAprobacion } = await this.transferenciasRepository.createQueryBuilder('transferencia')
+            .select('AVG(TIMESTAMPDIFF(HOUR, transferencia.fechaSolicitud, transferencia.fechaAprobacion))', 'avgTiempoAprobacion')
+            .where('transferencia.estado = :estado', { estado: EstadoTransferencia.APROBADA })
+            .getRawOne();
+
         return {
             total,
             porEstado: {
@@ -199,6 +205,7 @@ export class TransferenciasService {
                 ejecutadas,
                 rechazadas,
             },
+            tiempoPromedioAprobacion: parseFloat(avgTiempoAprobacion) || 0,
         };
     }
 }

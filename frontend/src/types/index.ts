@@ -33,6 +33,8 @@ export interface Bien {
     responsableId: number;
     categoriaSudebipId: number;
     observaciones?: string;
+    tipoOrigen?: 'DONACION' | 'COMPRA' | 'PRESTAMO_FUNDASALUD';
+    tiempoRegistro?: number;
     createdAt: string;
     updatedAt: string;
 }

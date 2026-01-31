@@ -33,6 +33,12 @@ interface Stats {
             enReparacion: number;
             desincorporados: number;
         };
+        porTipoOrigen: {
+            DONACION: number;
+            COMPRA: number;
+            PRESTAMO_FUNDASALUD: number;
+        };
+        tiempoPromedioRegistro: number;
     };
     transferencias: {
         total: number;
@@ -42,6 +48,7 @@ interface Stats {
             ejecutadas: number;
             rechazadas: number;
         };
+        tiempoPromedioAprobacion: number;
     };
     desincorporaciones: {
         total: number;
@@ -67,14 +74,14 @@ const Dashboard: React.FC = () => {
             try {
                 const results = await Promise.allSettled([
                     api.get('/bienes/statistics'),
-                    api.get('/transferencias/statistics').catch(() => ({ data: { total: 0, porEstado: { pendientes: 0, aprobadas: 0, ejecutadas: 0, rechazadas: 0 } } })),
+                    api.get('/transferencias/statistics').catch(() => ({ data: { total: 0, porEstado: { pendientes: 0, aprobadas: 0, ejecutadas: 0, rechazadas: 0 }, tiempoPromedioAprobacion: 0 } })),
                     api.get('/desincorporaciones/statistics').catch(() => ({ data: { total: 0, porEstado: { pendientes: 0, aprobadas: 0, ejecutadas: 0, rechazadas: 0 } } })),
                     api.get('/alertas/statistics').catch(() => ({ data: { total: 0, noLeidas: 0 } })),
                 ]);
 
                 setStats({
-                    bienes: results[0].status === 'fulfilled' ? results[0].value.data : { total: 0, porEstado: { activos: 0, inactivos: 0, enReparacion: 0, desincorporados: 0 } },
-                    transferencias: results[1].status === 'fulfilled' ? results[1].value.data : { total: 0, porEstado: { pendientes: 0, aprobadas: 0, ejecutadas: 0, rechazadas: 0 } },
+                    bienes: results[0].status === 'fulfilled' ? results[0].value.data : { total: 0, porEstado: { activos: 0, inactivos: 0, enReparacion: 0, desincorporados: 0 }, porTipoOrigen: { DONACION: 0, COMPRA: 0, PRESTAMO_FUNDASALUD: 0 }, tiempoPromedioRegistro: 0 },
+                    transferencias: results[1].status === 'fulfilled' ? results[1].value.data : { total: 0, porEstado: { pendientes: 0, aprobadas: 0, ejecutadas: 0, rechazadas: 0 }, tiempoPromedioAprobacion: 0 },
                     desincorporaciones: results[2].status === 'fulfilled' ? results[2].value.data : { total: 0, porEstado: { pendientes: 0, aprobadas: 0, ejecutadas: 0, rechazadas: 0 } },
                     alertas: results[3].status === 'fulfilled' ? results[3].value.data : { total: 0, noLeidas: 0 },
                 });
@@ -164,6 +171,32 @@ const Dashboard: React.FC = () => {
         ],
     };
 
+    // Chart data for Bienes por Origen (Pie Chart)
+    const origenChartData = {
+        labels: ['Compra', 'Donación', 'Préstamo Fundasalud'],
+        datasets: [
+            {
+                label: 'Bienes por Origen',
+                data: [
+                    stats.bienes.porTipoOrigen?.COMPRA || 0,
+                    stats.bienes.porTipoOrigen?.DONACION || 0,
+                    stats.bienes.porTipoOrigen?.PRESTAMO_FUNDASALUD || 0,
+                ],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.8)',  // blue
+                    'rgba(16, 185, 129, 0.8)',  // green
+                    'rgba(249, 115, 22, 0.8)',  // orange
+                ],
+                borderColor: [
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(16, 185, 129, 1)',
+                    'rgba(249, 115, 22, 1)',
+                ],
+                borderWidth: 2,
+            },
+        ],
+    };
+
     // Chart data for Transferencias y Desincorporaciones (Bar Chart)
     const procesosChartData = {
         labels: ['Pendientes', 'Aprobadas', 'Ejecutadas', 'Rechazadas'],
@@ -245,20 +278,53 @@ const Dashboard: React.FC = () => {
                 })}
             </div>
 
+            {/* KPIs de Tiempo */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-2">Tiempo Promedio de Registro</h3>
+                    <div className="flex items-end gap-2">
+                        <span className="text-4xl font-bold text-blue-700">
+                            {stats.bienes.tiempoPromedioRegistro ? stats.bienes.tiempoPromedioRegistro.toFixed(1) : '0'}
+                        </span>
+                        <span className="text-blue-600 mb-1">segundos</span>
+                    </div>
+                    <p className="text-sm text-blue-600 mt-2">Tiempo medio para registrar un nuevo bien</p>
+                </div>
+
+                <div className="card bg-gradient-to-r from-green-50 to-emerald-50 border-green-100">
+                    <h3 className="text-lg font-semibold text-green-900 mb-2">Tiempo Promedio de Aprobación</h3>
+                    <div className="flex items-end gap-2">
+                        <span className="text-4xl font-bold text-green-700">
+                            {stats.transferencias.tiempoPromedioAprobacion ? stats.transferencias.tiempoPromedioAprobacion.toFixed(1) : '0'}
+                        </span>
+                        <span className="text-green-600 mb-1">horas</span>
+                    </div>
+                    <p className="text-sm text-green-600 mt-2">Tiempo medio para aprobar una transferencia</p>
+                </div>
+            </div>
+
             {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {/* Pie Chart - Bienes por Estado */}
                 <div className="card">
-                    <h3 className="text-lg font-semibold mb-4">Distribución de Bienes por Estado</h3>
-                    <div className="h-80 flex items-center justify-center">
+                    <h3 className="text-lg font-semibold mb-4">Distribución por Estado</h3>
+                    <div className="h-64 flex items-center justify-center">
                         <Pie data={bienesChartData} options={chartOptions} />
+                    </div>
+                </div>
+
+                {/* Pie Chart - Bienes por Origen */}
+                <div className="card">
+                    <h3 className="text-lg font-semibold mb-4">Distribución por Origen</h3>
+                    <div className="h-64 flex items-center justify-center">
+                        <Pie data={origenChartData} options={chartOptions} />
                     </div>
                 </div>
 
                 {/* Bar Chart - Procesos */}
                 <div className="card">
                     <h3 className="text-lg font-semibold mb-4">Transferencias y Desincorporaciones</h3>
-                    <div className="h-80">
+                    <div className="h-64">
                         <Bar data={procesosChartData} options={barChartOptions} />
                     </div>
                 </div>

@@ -7,6 +7,10 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Bienes from './pages/Bienes';
 import Transferencias from './pages/Transferencias';
+import Desincorporaciones from './pages/Desincorporaciones';
+import Usuarios from './pages/Usuarios';
+import Reportes from './pages/Reportes';
+import Auditoria from './pages/Auditoria';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -64,9 +68,7 @@ function App() {
                             element={
                                 <ProtectedRoute>
                                     <Layout>
-                                        <div className="text-center text-gray-500 py-12">
-                                            Módulo de Desincorporaciones (En desarrollo)
-                                        </div>
+                                        <Desincorporaciones />
                                     </Layout>
                                 </ProtectedRoute>
                             }
@@ -90,9 +92,29 @@ function App() {
                             element={
                                 <ProtectedRoute requireAdmin>
                                     <Layout>
-                                        <div className="text-center text-gray-500 py-12">
-                                            Módulo de Usuarios (En desarrollo)
-                                        </div>
+                                        <Usuarios />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="/reportes"
+                            element={
+                                <ProtectedRoute requireAdmin>
+                                    <Layout>
+                                        <Reportes />
+                                    </Layout>
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        <Route
+                            path="/auditoria"
+                            element={
+                                <ProtectedRoute requireAdmin>
+                                    <Layout>
+                                        <Auditoria />
                                     </Layout>
                                 </ProtectedRoute>
                             }

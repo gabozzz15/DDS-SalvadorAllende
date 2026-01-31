@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
-import { Bien, EstadoBien } from './entities/bien.entity';
+import { Bien, EstadoBien, TipoOrigen } from './entities/bien.entity';
 import { CreateBienDto } from './dto/create-bien.dto';
 import { UpdateBienDto } from './dto/update-bien.dto';
 import { BarcodeService } from './services/barcode.service';
@@ -142,20 +142,38 @@ export class BienesService {
 
         // Validar ubicación si se actualiza
         if (updateBienDto.ubicacionId) {
-            await this.ubicacionesService.findOne(updateBienDto.ubicacionId);
+            const ubicacion = await this.ubicacionesService.findOne(updateBienDto.ubicacionId);
+            bien.ubicacion = ubicacion;
+            bien.ubicacionId = ubicacion.id;
         }
 
         // Validar responsable si se actualiza
         if (updateBienDto.responsableId) {
-            await this.responsablesService.findOne(updateBienDto.responsableId);
+            const responsable = await this.responsablesService.findOne(updateBienDto.responsableId);
+            bien.responsable = responsable;
+            bien.responsableId = responsable.id;
         }
 
         // Validar categoría SUDEBIP si se actualiza
         if (updateBienDto.categoriaSudebipId) {
-            await this.categoriasSudebipService.findOne(updateBienDto.categoriaSudebipId);
+            const categoria = await this.categoriasSudebipService.findOne(updateBienDto.categoriaSudebipId);
+            bien.categoriaSudebip = categoria;
+            bien.categoriaSudebipId = categoria.id;
         }
 
-        Object.assign(bien, updateBienDto);
+        // Actualizar campos simples explícitamente para asegurar que se guarden
+        if (updateBienDto.observaciones !== undefined) bien.observaciones = updateBienDto.observaciones;
+        if (updateBienDto.descripcion) bien.descripcion = updateBienDto.descripcion;
+        if (updateBienDto.marca !== undefined) bien.marca = updateBienDto.marca;
+        if (updateBienDto.modelo !== undefined) bien.modelo = updateBienDto.modelo;
+        if (updateBienDto.serial !== undefined) bien.serial = updateBienDto.serial;
+        if (updateBienDto.fechaAdquisicion) bien.fechaAdquisicion = updateBienDto.fechaAdquisicion as any; // TypeORM handles string dates
+        if (updateBienDto.estado) bien.estado = updateBienDto.estado;
+        if (updateBienDto.condicion) bien.condicion = updateBienDto.condicion;
+        if (updateBienDto.codigoInterno) bien.codigoInterno = updateBienDto.codigoInterno;
+        if (updateBienDto.tipoOrigen) bien.tipoOrigen = updateBienDto.tipoOrigen;
+        if (updateBienDto.tiempoRegistro) bien.tiempoRegistro = updateBienDto.tiempoRegistro;
+
         return this.bienesRepository.save(bien);
     }
 
@@ -174,6 +192,19 @@ export class BienesService {
         const enReparacion = await this.bienesRepository.count({ where: { estado: EstadoBien.EN_REPARACION } });
         const desincorporados = await this.bienesRepository.count({ where: { estado: EstadoBien.DESINCORPORADO } });
 
+        // Estadísticas por Tipo de Origen
+        const porTipoOrigen = await this.bienesRepository.createQueryBuilder('bien')
+            .select('bien.tipoOrigen', 'tipo')
+            .addSelect('COUNT(bien.id)', 'count')
+            .groupBy('bien.tipoOrigen')
+            .getRawMany();
+
+        // Tiempo promedio de registro
+        const { avgTiempoRegistro } = await this.bienesRepository.createQueryBuilder('bien')
+            .select('AVG(bien.tiempoRegistro)', 'avgTiempoRegistro')
+            .where('bien.tiempoRegistro IS NOT NULL')
+            .getRawOne();
+
         return {
             total,
             porEstado: {
@@ -182,6 +213,11 @@ export class BienesService {
                 enReparacion,
                 desincorporados,
             },
+            porTipoOrigen: porTipoOrigen.reduce((acc, curr) => {
+                acc[curr.tipo] = parseInt(curr.count);
+                return acc;
+            }, {}),
+            tiempoPromedioRegistro: parseFloat(avgTiempoRegistro) || 0,
         };
     }
 }
