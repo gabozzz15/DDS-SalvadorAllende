@@ -1,7 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+<<<<<<< HEAD
 import { Transferencia, EstatusTransferencia, TipoTransferencia } from './entities/transferencia.entity';
+=======
+<<<<<<< HEAD
+import { Transferencia, EstatusTransferencia, TipoTransferencia } from './entities/transferencia.entity';
+=======
+import { Transferencia, EstatusTransferencia } from './entities/transferencia.entity';
+>>>>>>> ca424ea38c59b96b95880a6defa06896a7349021
+>>>>>>> 61d4e9edfdb687db41539bd19fe705bdba5008a5
 import { CreateTransferenciaDto } from './dto/create-transferencia.dto';
 import { BienesService } from '../bienes/bienes.service';
 import { UnidadesAdministrativasService } from '../unidades-administrativas/unidades-administrativas.service';
@@ -111,12 +119,18 @@ export class TransferenciasService {
 
         const savedTransferencia = await this.transferenciasRepository.save(transferencia);
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 61d4e9edfdb687db41539bd19fe705bdba5008a5
         // Solo actualizar ubicación y responsable si es transferencia PERMANENTE
         if (transferencia.tipoTransferencia === TipoTransferencia.PERMANENTE) {
             await this.bienesService.update(transferencia.idBien, {
                 idUnidadAdministrativa: transferencia.ubicacionDestinoId,
                 idResponsableUso: transferencia.responsableDestinoId,
             });
+<<<<<<< HEAD
+=======
 
             transferencia.estatus = EstatusTransferencia.EJECUTADA;
             transferencia.fechaEjecucion = new Date();
@@ -126,6 +140,27 @@ export class TransferenciasService {
 
         // Para transferencias temporales, solo se aprueba sin ejecutar
         return savedTransferencia;
+=======
+        // Actualizar el bien con la nueva ubicación y responsable
+        await this.bienesService.update(transferencia.idBien, {
+            idUnidadAdministrativa: transferencia.ubicacionDestinoId,
+            idResponsableUso: transferencia.responsableDestinoId,
+        });
+>>>>>>> 61d4e9edfdb687db41539bd19fe705bdba5008a5
+
+            transferencia.estatus = EstatusTransferencia.EJECUTADA;
+            transferencia.fechaEjecucion = new Date();
+
+<<<<<<< HEAD
+            return this.transferenciasRepository.save(transferencia);
+        }
+
+        // Para transferencias temporales, solo se aprueba sin ejecutar
+        return savedTransferencia;
+=======
+        return this.transferenciasRepository.save(transferencia);
+>>>>>>> ca424ea38c59b96b95880a6defa06896a7349021
+>>>>>>> 61d4e9edfdb687db41539bd19fe705bdba5008a5
     }
 
     async rechazar(id: number, userId: number, observaciones?: string): Promise<Transferencia> {
@@ -144,6 +179,10 @@ export class TransferenciasService {
         return this.transferenciasRepository.save(transferencia);
     }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 61d4e9edfdb687db41539bd19fe705bdba5008a5
     async registrarDevolucion(id: number, userId: number): Promise<Transferencia> {
         const transferencia = await this.findOne(id);
 
@@ -166,6 +205,11 @@ export class TransferenciasService {
         return this.transferenciasRepository.save(transferencia);
     }
 
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> ca424ea38c59b96b95880a6defa06896a7349021
+>>>>>>> 61d4e9edfdb687db41539bd19fe705bdba5008a5
     async getStatistics(): Promise<any> {
         const total = await this.transferenciasRepository.count();
         const pendientes = await this.transferenciasRepository.count({
