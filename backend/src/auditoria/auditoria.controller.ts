@@ -37,4 +37,38 @@ export class AuditoriaController {
     getStatistics() {
         return this.auditoriaService.getStatistics();
     }
+
+    @Get('timeline')
+    getActivityTimeline(
+        @Query('period') period?: 'day' | 'week' | 'month',
+        @Query('days') days?: string,
+    ) {
+        return this.auditoriaService.getActivityTimeline(
+            period || 'day',
+            days ? +days : 30
+        );
+    }
+
+    @Get('analysis/users')
+    getMostActiveUsers(@Query('limit') limit?: string) {
+        return this.auditoriaService.getMostActiveUsers(limit ? +limit : 10);
+    }
+
+    @Get('analysis/entities')
+    getMostModifiedEntities(@Query('limit') limit?: string) {
+        return this.auditoriaService.getMostModifiedEntities(limit ? +limit : 10);
+    }
+
+    @Get('analysis/patterns')
+    getUsagePatterns() {
+        return this.auditoriaService.getUsagePatterns();
+    }
+
+    @Get('entity/:entidad/:id/history')
+    getEntityHistory(
+        @Query('entidad') entidad: string,
+        @Query('id') id: string,
+    ) {
+        return this.auditoriaService.getEntityHistory(entidad, +id);
+    }
 }

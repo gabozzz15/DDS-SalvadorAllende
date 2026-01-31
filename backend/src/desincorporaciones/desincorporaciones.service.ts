@@ -132,11 +132,21 @@ export class DesincorporacionesService {
             where: { estatus: EstatusDesincorporacion.EJECUTADA }
         });
 
+        // Tiempo promedio de aprobación
+        const tiempoAprobacionResult = await this.desincorporacionesRepository
+            .createQueryBuilder('desincorporacion')
+            .select('AVG(TIMESTAMPDIFF(SECOND, desincorporacion.fechaSolicitud, desincorporacion.fechaAprobacion))', 'promedio')
+            .where('desincorporacion.fechaAprobacion IS NOT NULL')
+            .getRawOne();
+
+        const tiempoPromedioAprobacion = tiempoAprobacionResult?.promedio ? Math.round(tiempoAprobacionResult.promedio) : 0;
+
         return {
             total,
             pendientes,
             aprobadas,
             ejecutadas,
+            tiempoPromedioAprobacion,
         };
     }
 }

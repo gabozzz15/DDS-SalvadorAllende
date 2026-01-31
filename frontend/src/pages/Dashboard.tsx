@@ -308,6 +308,22 @@ const Dashboard: React.FC = () => {
                         </p>
                     </div>
                 </div>
+
+                <div className="card bg-gradient-to-r from-orange-50 to-amber-50 border-orange-100">
+                    <h3 className="text-lg font-semibold text-orange-900 mb-2">⏱️ Tiempo de Aprobación (Desincorp.)</h3>
+                    <div className="flex items-end gap-2">
+                        <span className="text-4xl font-bold text-orange-700">
+                            {stats.desincorporaciones?.tiempoPromedioAprobacion ? (stats.desincorporaciones.tiempoPromedioAprobacion / 3600).toFixed(1) : '0'}
+                        </span>
+                        <span className="text-orange-600 mb-1">horas</span>
+                    </div>
+                    <p className="text-sm text-orange-600 mt-2">KPI: Agilidad en desincorporaciones</p>
+                    <div className="mt-3 pt-3 border-t border-orange-200">
+                        <p className="text-xs text-orange-700">
+                            Meta SUDEBIP: &lt; 72 horas
+                        </p>
+                    </div>
+                </div>
             </div>
 
             {/* Charts Section */}
