@@ -320,7 +320,23 @@ const Dashboard: React.FC = () => {
                     <p className="text-sm text-orange-600 mt-2">KPI: Agilidad en desincorporaciones</p>
                     <div className="mt-3 pt-3 border-t border-orange-200">
                         <p className="text-xs text-orange-700">
-                            Meta SUDEBIP: &lt; 72 horas
+                            Meta: &lt; 24 horas
+                        </p>
+                    </div>
+                </div>
+
+                <div className="card bg-gradient-to-r from-teal-50 to-emerald-50 border-teal-100">
+                    <h3 className="text-lg font-semibold text-teal-900 mb-2">🔄 Transferencias Temporales Activas</h3>
+                    <div className="flex items-end gap-2">
+                        <span className="text-4xl font-bold text-teal-700">
+                            {stats.transferencias?.temporalesActivas || 0}
+                        </span>
+                        <span className="text-teal-600 mb-1">bienes</span>
+                    </div>
+                    <p className="text-sm text-teal-600 mt-2">KPI: Control de préstamos</p>
+                    <div className="mt-3 pt-3 border-t border-teal-200">
+                        <p className="text-xs text-teal-700">
+                            Bienes fuera de su ubicación original
                         </p>
                     </div>
                 </div>

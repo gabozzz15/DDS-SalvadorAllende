@@ -64,4 +64,10 @@ export class TransferenciasController {
     ) {
         return this.transferenciasService.rechazar(+id, req.user.id, observaciones);
     }
+
+    @Patch(':id/devolver')
+    @Roles(UserRole.ADMIN, UserRole.USER)
+    devolverTemporal(@Param('id') id: string, @Request() req) {
+        return this.transferenciasService.registrarDevolucion(+id, req.user.id);
+    }
 }

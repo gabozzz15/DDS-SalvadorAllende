@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Eye, Check, X } from 'lucide-react';
+import { Plus, Eye, Check, X, RotateCcw, Clock } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Transferencia, Bien, UnidadAdministrativa as Ubicacion, Responsable } from '../types';
@@ -10,6 +10,7 @@ const Transferencias = () => {
     const [loading, setLoading] = useState(true);
     const [estadoFilter, setEstadoFilter] = useState('');
     const [bienFilter, setBienFilter] = useState('');
+    const [tipoFilter, setTipoFilter] = useState('');
     const { isAdmin } = useAuth();
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -28,19 +29,22 @@ const Transferencias = () => {
         responsableDestinoId: '',
         motivo: '',
         observaciones: '',
+        tipoTransferencia: 'PERMANENTE',
+        fechaRetornoEsperada: '',
     });
 
     useEffect(() => {
         fetchTransferencias();
         fetchDropdownData();
-    }, [estadoFilter, bienFilter]);
+    }, [estadoFilter, bienFilter, tipoFilter]);
 
     const fetchTransferencias = async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
-            if (estadoFilter) params.append('estatusUso', estadoFilter);
+            if (estadoFilter) params.append('estatus', estadoFilter);
             if (bienFilter) params.append('idBien', bienFilter);
+            if (tipoFilter) params.append('tipo', tipoFilter);
 
             const response = await api.get(`/transferencias?${params.toString()}`);
             setTransferencias(response.data);
@@ -75,6 +79,8 @@ const Transferencias = () => {
             responsableDestinoId: '',
             motivo: '',
             observaciones: '',
+            tipoTransferencia: 'PERMANENTE',
+            fechaRetornoEsperada: '',
         });
         setModalMode('create');
         setModalOpen(true);
@@ -89,13 +95,18 @@ const Transferencias = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const payload = {
+            const payload: any = {
                 idBien: parseInt(formData.idBien),
                 ubicacionDestinoId: parseInt(formData.ubicacionDestinoId),
                 responsableDestinoId: parseInt(formData.responsableDestinoId),
                 motivo: formData.motivo,
                 observaciones: formData.observaciones,
+                tipoTransferencia: formData.tipoTransferencia,
             };
+
+            if (formData.tipoTransferencia === 'TEMPORAL' && formData.fechaRetornoEsperada) {
+                payload.fechaRetornoEsperada = formData.fechaRetornoEsperada;
+            }
 
             await api.post('/transferencias', payload);
             setModalOpen(false);
@@ -108,9 +119,14 @@ const Transferencias = () => {
     };
 
     const handleAprobar = async (id: number) => {
+        const transferencia = transferencias.find(t => t.id === id);
+        const esTemporal = transferencia?.tipoTransferencia === 'TEMPORAL';
+
         const result = await Swal.fire({
             title: '¿Aprobar transferencia?',
-            text: "El bien se actualizará automáticamente a la nueva ubicación y responsable.",
+            text: esTemporal
+                ? "Transferencia temporal: No se modificará la ubicación del bien hasta la devolución."
+                : "El bien se actualizará automáticamente a la nueva ubicación y responsable.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
@@ -163,6 +179,30 @@ const Transferencias = () => {
         }
     };
 
+    const handleDevolver = async (id: number) => {
+        const result = await Swal.fire({
+            title: '¿Registrar devolución?',
+            text: "Se marcará esta transferencia temporal como completada.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, registrar devolución',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await api.patch(`/transferencias/${id}/devolver`);
+                fetchTransferencias();
+                Swal.fire('Devuelta', 'La devolución ha sido registrada correctamente.', 'success');
+            } catch (error: any) {
+                console.error('Error registrando devolución:', error);
+                Swal.fire('Error', error.response?.data?.message || 'Error al registrar la devolución', 'error');
+            }
+        }
+    };
+
     const getEstadoBadge = (estado: string) => {
         const badges = {
             PENDIENTE: 'badge-warning',
@@ -196,7 +236,7 @@ const Transferencias = () => {
 
             {/* Filters */}
             <div className="card mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Estado
@@ -211,6 +251,20 @@ const Transferencias = () => {
                             <option value="APROBADA">Aprobada</option>
                             <option value="RECHAZADA">Rechazada</option>
                             <option value="EJECUTADA">Ejecutada</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Tipo
+                        </label>
+                        <select
+                            value={tipoFilter}
+                            onChange={(e) => setTipoFilter(e.target.value)}
+                            className="input"
+                        >
+                            <option value="">Todos</option>
+                            <option value="PERMANENTE">Permanente</option>
+                            <option value="TEMPORAL">Temporal</option>
                         </select>
                     </div>
                     <div>
@@ -246,15 +300,18 @@ const Transferencias = () => {
                                     Origen → Destino
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Motivo
+                                    Tipo
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Estado
+                                    Motivo
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Fecha Solicitud
                                 </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Estado
+                                </th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Acciones
                                 </th>
                             </tr>
@@ -281,6 +338,23 @@ const Transferencias = () => {
                                             <div className="text-xs text-gray-500">
                                                 Resp. {transferencia.responsableOrigenId} → {transferencia.responsableDestinoId}
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {transferencia.tipoTransferencia === 'TEMPORAL' ? (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                    <Clock className="w-3 h-3" />
+                                                    Temporal
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    Permanente
+                                                </span>
+                                            )}
+                                            {transferencia.tipoTransferencia === 'TEMPORAL' && transferencia.fechaRetornoEsperada && (
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    Retorno: {new Date(transferencia.fechaRetornoEsperada).toLocaleDateString()}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-sm text-gray-900 max-w-xs truncate">
@@ -322,6 +396,17 @@ const Transferencias = () => {
                                                         </button>
                                                     </>
                                                 )}
+                                                {transferencia.tipoTransferencia === 'TEMPORAL' &&
+                                                    transferencia.estatus === 'APROBADA' &&
+                                                    !transferencia.fechaDevolucion && (
+                                                        <button
+                                                            onClick={() => handleDevolver(transferencia.id)}
+                                                            className="text-emerald-600 hover:text-emerald-900"
+                                                            title="Registrar Devolución"
+                                                        >
+                                                            <RotateCcw className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                             </div>
                                         </td>
                                     </tr>
@@ -412,6 +497,43 @@ const Transferencias = () => {
                                             ))}
                                         </select>
                                     </div>
+
+                                    {/* Tipo de Transferencia */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Tipo de Transferencia *
+                                        </label>
+                                        <select
+                                            value={formData.tipoTransferencia}
+                                            onChange={(e) => setFormData({ ...formData, tipoTransferencia: e.target.value })}
+                                            className="input"
+                                            required
+                                        >
+                                            <option value="PERMANENTE">Permanente</option>
+                                            <option value="TEMPORAL">Temporal</option>
+                                        </select>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {formData.tipoTransferencia === 'PERMANENTE'
+                                                ? 'El bien cambiará de ubicación y responsable permanentemente.'
+                                                : 'El bien retornará a su ubicación original después de la fecha establecida.'}
+                                        </p>
+                                    </div>
+
+                                    {/* Fecha Retorno (solo para TEMPORAL) */}
+                                    {formData.tipoTransferencia === 'TEMPORAL' && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Fecha de Retorno Esperada
+                                            </label>
+                                            <input
+                                                type="date"
+                                                value={formData.fechaRetornoEsperada}
+                                                onChange={(e) => setFormData({ ...formData, fechaRetornoEsperada: e.target.value })}
+                                                className="input"
+                                                min={new Date().toISOString().split('T')[0]}
+                                            />
+                                        </div>
+                                    )}
 
                                     {/* Motivo */}
                                     <div>

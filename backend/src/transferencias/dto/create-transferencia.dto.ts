@@ -1,4 +1,6 @@
-import { IsInt, IsString, IsOptional } from 'class-validator';
+import { IsInt, IsString, IsOptional, IsEnum, IsDate, IsNotEmpty } from 'class-validator';
+import { Type } from 'class-transformer';
+import { TipoTransferencia } from '../entities/transferencia.entity';
 
 export class CreateTransferenciaDto {
     @IsInt()
@@ -11,7 +13,17 @@ export class CreateTransferenciaDto {
     responsableDestinoId: number;
 
     @IsString()
+    @IsNotEmpty()
     motivo: string;
+
+    @IsEnum(TipoTransferencia)
+    @IsOptional()
+    tipoTransferencia?: TipoTransferencia;
+
+    @IsDate()
+    @Type(() => Date)
+    @IsOptional()
+    fechaRetornoEsperada?: Date;
 
     @IsString()
     @IsOptional()
