@@ -60,6 +60,11 @@ export class BienesController {
         return this.bienesService.findByCodigoInterno(codigoInterno);
     }
 
+    @Get(':id/codigos')
+    async generarCodigos(@Param('id') id: string) {
+        return this.bienesService.generarCodigos(+id);
+    }
+
     @Patch(':id')
     @Roles(UserRole.ADMIN)
     update(@Param('id') id: string, @Body() updateBienDto: UpdateBienDto) {

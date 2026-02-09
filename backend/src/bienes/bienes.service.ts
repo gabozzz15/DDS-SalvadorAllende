@@ -5,6 +5,7 @@ import { Bien, EstatusUso } from './entities/bien.entity';
 import { CreateBienDto } from './dto/create-bien.dto';
 import { UpdateBienDto } from './dto/update-bien.dto';
 import { BarcodeService } from './services/barcode.service';
+import { CodigosService } from './services/codigos.service';
 import { CategoriasSudebipService } from '../categorias-sudebip/categorias-sudebip.service';
 import { UnidadesAdministrativasService } from '../unidades-administrativas/unidades-administrativas.service';
 import { ResponsablesService } from '../responsables/responsables.service';
@@ -16,6 +17,7 @@ export class BienesService {
         @InjectRepository(Bien)
         private bienesRepository: Repository<Bien>,
         private barcodeService: BarcodeService,
+        private codigosService: CodigosService,
         private categoriasSudebipService: CategoriasSudebipService,
         private unidadesAdministrativasService: UnidadesAdministrativasService,
         private responsablesService: ResponsablesService,
@@ -220,6 +222,40 @@ export class BienesService {
             desincorporados,
             porOrigen,
             tiempoPromedioRegistro,
+        };
+    }
+
+    /**
+     * Genera códigos de barras y QR para un bien
+     */
+    async generarCodigos(id: number) {
+        const bien = await this.findOne(id);
+
+        // Datos completos para el QR (incluye más información)
+        const datosQR = {
+            id: bien.id,
+            codigoInterno: bien.codigoInterno,
+            descripcion: bien.descripcion,
+            marca: bien.marca,
+            modelo: bien.modelo,
+            serial: bien.serialBien,
+            ubicacion: bien.unidadAdministrativa?.nombre,
+            responsable: bien.responsableUso ?
+                `${bien.responsableUso.nombres} ${bien.responsableUso.apellidos}` : null,
+        };
+
+        const codigos = await this.codigosService.generarCodigosCompletos(
+            bien.codigoInterno,
+            datosQR
+        );
+
+        return {
+            bien: {
+                id: bien.id,
+                codigoInterno: bien.codigoInterno,
+                descripcion: bien.descripcion,
+            },
+            ...codigos,
         };
     }
 }

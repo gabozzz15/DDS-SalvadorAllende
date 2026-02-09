@@ -1,0 +1,25 @@
+COMMIT: [ADD, MOD, FIX] V13 - implementación de sistema de historial para relaciones muchos-a-muchos.
+
+ADD:
+- Tablas Históricas: Creación de `bienes_responsables_historico` y `bienes_usuarios_historico` para rastrear el ciclo de vida completo de cada bien.
+- Migración SQL: Script `002_add_historical_tables.sql` con migración automática de datos existentes y verificaciones de integridad.
+- Módulo de Historial: Implementación completa con entities, DTOs, service y controller para gestión centralizada del historial.
+- Endpoints REST: 5 nuevos endpoints para consultar historiales de bienes, responsables y usuarios.
+- Documentación LEAN: Archivo `LEAN_WASTE_LOG.txt` para registro de desperdicios eliminados según metodología LEAN.
+
+MOD:
+- App Module: Integración del `HistorialModule` en la aplicación principal.
+- Arquitectura: Cambio de relaciones directas a muchos-a-muchos con tablas intermedias para trazabilidad completa.
+
+FIX:
+- Trazabilidad: Solución a la pérdida de información histórica sobre cambios de responsables.
+- Auditoría: Implementación de registro automático de todas las acciones de usuarios sobre bienes.
+
+DEAL:
+- (Ninguna eliminación en esta versión - solo adiciones y mejoras)
+
+---
+
+LEAN WASTE REDUCTIONS DOCUMENTADAS:
+1. DEFECTOS (Prevención): Eliminación de pérdida de trazabilidad mediante tablas históricas
+2. MOVIMIENTO (Reducción): Centralización de consultas históricas en un solo módulo reutilizable

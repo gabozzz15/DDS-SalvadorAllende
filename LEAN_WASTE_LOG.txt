@@ -70,6 +70,31 @@ Impacto:
 
 ---
 
+Fecha: 2026-02-08 22:35
+Módulo: Backend - Generación de Códigos de Barras y QR
+Tipo de Desperdicio: ESPERA (Eliminación)
+
+Descripción:
+Anteriormente, para identificar físicamente un bien se requería:
+- Buscar manualmente el bien en el sistema
+- Anotar el código interno a mano
+- Riesgo de errores de transcripción
+- Tiempo perdido en búsquedas manuales
+
+Acción Correctiva:
+Se implementó un sistema automático de generación de códigos:
+- Códigos de barras Code128 escaneables con lectores estándar
+- Códigos QR con información completa del bien (JSON)
+- Generación on-demand vía endpoint REST
+- Imágenes en formato base64 listas para imprimir
+
+Impacto:
+- Identificación instantánea de bienes mediante escaneo
+- Eliminación de errores de transcripción manual
+- Tiempo de búsqueda reducido de minutos a segundos
+- Facilita inventarios físicos y auditorías
+
+---
 
 
 ================================================================================
