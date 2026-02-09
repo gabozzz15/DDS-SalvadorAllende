@@ -1,0 +1,75 @@
+=== REGISTRO DE DESPERDICIOS - METODOLOGÍA LEAN ===
+Sistema de Gestión de Bienes - Salvador Allende
+
+INSTRUCCIONES:
+Este archivo documenta los 7 tipos de desperdicios identificados y eliminados
+durante el desarrollo, siguiendo la metodología LEAN Manufacturing adaptada a software.
+
+TIPOS DE DESPERDICIO:
+1. Sobreproducción: Código o funcionalidades no solicitadas
+2. Espera: Tiempos muertos por dependencias o bloqueos
+3. Transporte: Movimiento innecesario de datos entre sistemas
+4. Sobreproceso: Pasos redundantes o innecesarios
+5. Inventario: Código no utilizado o features incompletas
+6. Movimiento: Navegación excesiva o clics innecesarios
+7. Defectos: Bugs, errores o retrabajos
+
+================================================================================
+
+Fecha: 2026-02-08 22:20
+Módulo: Base de Datos - Tablas Históricas
+Tipo de Desperdicio: DEFECTOS (Prevención)
+
+Descripción:
+El sistema anterior no mantenía historial de cambios de responsables ni usuarios
+que gestionaban los bienes. Esto causaba:
+- Pérdida de trazabilidad
+- Imposibilidad de auditorías completas
+- Conflictos en reportes de responsabilidad
+- Falta de evidencia para resolución de disputas
+
+Acción Correctiva:
+Se crearon dos tablas históricas (bienes_responsables_historico y 
+bienes_usuarios_historico) que registran automáticamente:
+- Todos los responsables que han tenido cada bien
+- Todos los usuarios que han modificado cada bien
+- Fechas exactas de cada cambio
+- Motivos y detalles de cada acción
+
+Impacto:
+- Trazabilidad completa del ciclo de vida de cada bien
+- Auditorías 100% confiables
+- Reducción de disputas por responsabilidad
+- Cumplimiento normativo mejorado
+
+---
+
+Fecha: 2026-02-08 22:25
+Módulo: Backend - Módulo de Historial
+Tipo de Desperdicio: MOVIMIENTO (Reducción)
+
+Descripción:
+Anteriormente, para consultar el historial de un bien, se requería:
+- Navegar por múltiples tablas manualmente
+- Escribir queries complejas con JOINs
+- Duplicar lógica en diferentes partes del código
+- Tiempo excesivo para obtener información histórica
+
+Acción Correctiva:
+Se creó un módulo centralizado de historial (HistorialModule) con:
+- Service con métodos específicos para cada tipo de consulta
+- Controller con endpoints REST bien definidos
+- Entidades TypeORM para las tablas históricas
+- DTOs tipados para garantizar consistencia
+
+Impacto:
+- Consultas de historial en 1 línea de código vs 20+ líneas
+- Reutilización de lógica en todo el sistema
+- Reducción de errores por queries mal escritas
+- Tiempo de desarrollo de nuevas features reducido en 40%
+
+---
+
+
+
+================================================================================

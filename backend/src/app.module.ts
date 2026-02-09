@@ -20,6 +20,7 @@ import { AuditoriaInterceptor } from './auditoria/auditoria.interceptor';
 import { ReportesModule } from './reportes/reportes.module';
 import { SubscribersModule } from './subscribers/subscribers.module';
 import { AsignacionesModule } from './asignaciones/asignaciones.module';
+import { HistorialModule } from './historial/historial.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { AsignacionesModule } from './asignaciones/asignaciones.module';
     ReportesModule,
     SubscribersModule,
     AsignacionesModule,
+    HistorialModule,
   ],
   controllers: [AppController],
   providers: [
