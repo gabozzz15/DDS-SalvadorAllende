@@ -1,0 +1,26 @@
+COMMIT: [ADD, MOD] V14 - implementación de generación de códigos de barras y QR para bienes.
+
+ADD:
+- Servicio de Códigos: Creación de `CodigosService` con métodos para generar códigos de barras Code128 y códigos QR.
+- Endpoint REST: Nuevo endpoint GET `/bienes/:id/codigos` para generar códigos on-demand.
+- Dependencias: Agregadas `qrcode` y `@types/qrcode` al package.json.
+- Documentación: Archivo `INSTALL_DEPENDENCIES.md` con instrucciones de instalación de npm.
+
+MOD:
+- BienesService: Integración del método `generarCodigos()` que retorna ambos códigos en formato base64.
+- BienesController: Nuevo endpoint para acceder a la generación de códigos.
+- BienesModule: Agregado `CodigosService` a los providers.
+
+FIX:
+- (Ninguna corrección en esta versión - solo adiciones)
+
+DEAL:
+- (Ninguna eliminación en esta versión)
+
+---
+
+LEAN WASTE REDUCTION DOCUMENTADA:
+- ESPERA (Eliminación): Identificación instantánea de bienes mediante escaneo vs búsqueda manual
+
+NOTA IMPORTANTE:
+Después de hacer pull, ejecutar `npm install` en el directorio backend para instalar las nuevas dependencias.
