@@ -1,0 +1,30 @@
+COMMIT: [ADD] V15 - implementación del sistema de fotos para bienes (backend completo + modal de códigos frontend).
+
+ADD:
+- Migración SQL: `003_add_fotos_table.sql` con tabla fotos y constraints
+- Entidad Foto: TypeORM entity para gestión de fotos de bienes
+- DTOs: CreateFotoDto y UpdateFotoDto para validación
+- FotosService: Servicio completo con upload, eliminación, marcado de principal
+- Endpoints REST: 4 nuevos endpoints para gestión de fotos
+  - POST `/bienes/:id/fotos` - Subir hasta 10 fotos
+  - GET `/bienes/:id/fotos` - Obtener fotos de un bien
+  - DELETE `/bienes/fotos/:fotoId` - Eliminar foto
+  - PATCH `/bienes/fotos/:fotoId/principal` - Marcar como principal
+- CodigosModal: Componente React para mostrar y descargar códigos QR y de barras
+
+MOD:
+- BienesController: Integrados endpoints de fotos y configuración de Multer
+- BienesModule: Agregada entidad Foto y FotosService
+
+CARACTERÍSTICAS:
+- Upload con validación de tamaño (máx 5MB) y formato (JPG/PNG)
+- Almacenamiento en `/uploads/bienes/`
+- Solo una foto principal por bien
+- Generación de nombres únicos con timestamp
+
+---
+
+PENDIENTE (Frontend):
+- Integrar upload de fotos en BienModal
+- Mostrar galería de fotos en vista de detalles
+- Integrar CodigosModal en vista de detalles

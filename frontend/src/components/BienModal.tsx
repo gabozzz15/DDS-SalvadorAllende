@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, RefreshCw } from 'lucide-react';
-import { Bien } from '../types';
+import { X, RefreshCw, Image as ImageIcon, Star, Upload, Trash2 } from 'lucide-react';
+import { Bien, Foto } from '../types';
 import api from '../lib/api';
 import Swal from 'sweetalert2';
 
@@ -10,6 +10,7 @@ interface BienModalProps {
     onClose: () => void;
     onSave: () => void;
     mode: 'view' | 'create' | 'edit';
+    onViewCodigos?: (bien: Bien) => void;
 }
 
 interface Ubicacion {
@@ -36,7 +37,7 @@ interface TipoOrigen {
     nombre: string;
 }
 
-const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
+const BienModal = ({ bien, isOpen, onClose, onSave, mode, onViewCodigos }: BienModalProps) => {
     const [creationMode, setCreationMode] = useState<'REGISTER' | 'NEW'>('REGISTER');
     const [formData, setFormData] = useState({
         codigoSudebip: '',
@@ -61,6 +62,20 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
     const [responsables, setResponsables] = useState<Responsable[]>([]);
     const [categorias, setCategorias] = useState<CategoriaSudebip[]>([]);
     const [tiposOrigen, setTiposOrigen] = useState<TipoOrigen[]>([]);
+
+    // Estados para fotos
+    const [fotos, setFotos] = useState<Foto[]>([]);
+    const [newFotos, setNewFotos] = useState<File[]>([]);
+    const [uploadingFotos, setUploadingFotos] = useState(false);
+
+    const fetchFotos = async (id: number) => {
+        try {
+            const response = await api.get(`/bienes/${id}/fotos`);
+            setFotos(response.data);
+        } catch (error) {
+            console.error('Error cargando fotos:', error);
+        }
+    };
 
     useEffect(() => {
         if (bien && (mode === 'view' || mode === 'edit')) {
@@ -118,6 +133,14 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 });
             }
         }
+
+        // Reset fotos
+        setFotos([]);
+        setNewFotos([]);
+
+        if (bien && (mode === 'edit' || mode === 'view')) {
+            fetchFotos(bien.id);
+        }
     }, [bien, mode, creationMode]);
 
     useEffect(() => {
@@ -151,6 +174,43 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
             fetchData();
         }
     }, [isOpen, mode, creationMode]);
+
+    const handleDeleteFoto = async (fotoId: number) => {
+        try {
+            await api.delete(`/bienes/fotos/${fotoId}`);
+            setFotos(fotos.filter(f => f.id !== fotoId));
+            Swal.fire('Eliminado', 'Foto eliminada correctamente', 'success');
+        } catch (error) {
+            console.error('Error eliminando foto:', error);
+            Swal.fire('Error', 'No se pudo eliminar la foto', 'error');
+        }
+    };
+
+    const handleSetPrincipal = async (fotoId: number) => {
+        try {
+            await api.patch(`/bienes/fotos/${fotoId}/principal`);
+            // Actualizar estado local
+            setFotos(fotos.map(f => ({
+                ...f,
+                esPrincipal: f.id === fotoId
+            })));
+        } catch (error) {
+            console.error('Error marcando foto principal:', error);
+            Swal.fire('Error', 'No se pudo actualizar la foto principal', 'error');
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const filesArray = Array.from(e.target.files);
+            // Validar tamaño y tipo aquí si es necesario
+            setNewFotos([...newFotos, ...filesArray]);
+        }
+    };
+
+    const removeNewFoto = (index: number) => {
+        setNewFotos(newFotos.filter((_, i) => i !== index));
+    };
 
     const [startTime, setStartTime] = useState<number | null>(null);
 
@@ -195,12 +255,35 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                 }
             }
 
+            let bienId = bien?.id;
+
             if (mode === 'create') {
-                await api.post('/bienes', payload);
+                const response = await api.post('/bienes', payload);
+                bienId = response.data.id;
                 Swal.fire('Creado', 'El bien ha sido registrado exitosamente.', 'success');
             } else if (mode === 'edit' && bien) {
                 await api.patch(`/bienes/${bien.id}`, payload);
                 Swal.fire('Actualizado', 'El bien ha sido actualizado exitosamente.', 'success');
+            }
+
+            // Subir fotos si hay nuevas
+            if (newFotos.length > 0 && bienId) {
+                setUploadingFotos(true);
+                const formDataFotos = new FormData();
+                newFotos.forEach(file => {
+                    formDataFotos.append('fotos', file);
+                });
+
+                try {
+                    await api.post(`/bienes/${bienId}/fotos`, formDataFotos, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                } catch (uploadError) {
+                    console.error('Error subiendo fotos:', uploadError);
+                    Swal.fire('Advertencia', 'El bien se guardó pero hubo error subiendo algunas fotos.', 'warning');
+                } finally {
+                    setUploadingFotos(false);
+                }
             }
 
             onSave();
@@ -506,9 +589,120 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                                 disabled={isViewMode}
                             />
                         </div>
+
+                        {/* SECCIÓN DE FOTOS */}
+                        <div className="md:col-span-2 mt-4 border-t pt-4">
+                            <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
+                                <ImageIcon size={20} />
+                                Galería de Fotos
+                            </h3>
+
+                            {!isViewMode && (
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Agregar Fotos
+                                    </label>
+                                    <div className="flex items-center gap-4">
+                                        <label className="cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-lg border border-blue-200 flex items-center gap-2 transition-colors">
+                                            <Upload size={18} />
+                                            Seleccionar Archivos
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/png, image/jpeg"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                        <span className="text-sm text-gray-500">
+                                            {newFotos.length} archivo(s) seleccionado(s)
+                                        </span>
+                                    </div>
+
+                                    {/* Previsualización de archivos nuevos */}
+                                    {newFotos.length > 0 && (
+                                        <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            {newFotos.map((file, index) => (
+                                                <div key={index} className="relative group border rounded-lg p-2 bg-gray-50">
+                                                    <div className="text-xs truncate mb-1">{file.name}</div>
+                                                    <div className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeNewFoto(index)}
+                                                        className="absolute top-1 right-1 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200 transition-colors"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Fotos Existentes */}
+                            {fotos.length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                                    {fotos.map((foto) => (
+                                        <div key={foto.id} className="relative group border rounded-lg overflow-hidden bg-white shadow-sm">
+                                            <div className="aspect-square bg-gray-100 flex items-center justify-center relative">
+                                                <img
+                                                    src={`http://localhost:3000${foto.rutaArchivo}`}
+                                                    alt="Foto del bien"
+                                                    className="object-cover w-full h-full"
+                                                />
+                                                {foto.esPrincipal && (
+                                                    <div className="absolute top-2 left-2 bg-yellow-400 text-white rounded-full p-1 shadow-md">
+                                                        <Star size={12} fill="currentColor" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {!isViewMode && (
+                                                <div className="p-2 flex justify-between items-center bg-gray-50">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSetPrincipal(foto.id)}
+                                                        className={`p-1 rounded transition-colors ${foto.esPrincipal ? 'text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
+                                                        title="Marcar como principal"
+                                                    >
+                                                        <Star size={16} fill={foto.esPrincipal ? "currentColor" : "none"} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteFoto(foto.id)}
+                                                        className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                                        title="Eliminar foto"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+                                    <ImageIcon className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+                                    <p>No hay fotos asociadas</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="mt-6 flex justify-end gap-3">
+                        {isViewMode && onViewCodigos && bien && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onClose();
+                                    onViewCodigos(bien);
+                                }}
+                                className="btn btn-primary bg-purple-600 hover:bg-purple-700 border-purple-600 flex items-center gap-2 mr-auto"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" /><path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" /><path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M3 12h.01" /><path d="M12 3h.01" /><path d="M12 16v.01" /><path d="M16 12h1" /><path d="M21 12v.01" /><path d="M12 21v-1" /></svg>
+                                Ver Códigos
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={onClose}
@@ -519,10 +713,10 @@ const BienModal = ({ bien, isOpen, onClose, onSave, mode }: BienModalProps) => {
                         {!isViewMode && (
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || uploadingFotos}
                                 className="btn btn-primary"
                             >
-                                {loading ? 'Guardando...' : 'Guardar'}
+                                {loading ? 'Guardando...' : (uploadingFotos ? 'Subiendo fotos...' : 'Guardar')}
                             </button>
                         )}
                     </div>

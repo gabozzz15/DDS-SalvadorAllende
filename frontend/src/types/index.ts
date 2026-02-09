@@ -39,6 +39,20 @@ export interface Bien {
     createdAt: string;
     updatedAt: string;
     createdBy?: number;
+    fotos?: Foto[];
+}
+
+export interface Foto {
+    id: number;
+    idBien: number;
+    nombreArchivo: string;
+    rutaArchivo: string;
+    tamanoBytes: number;
+    tipoMime: string;
+    esPrincipal: boolean;
+    descripcion?: string;
+    uploadedBy?: number;
+    createdAt: string;
 }
 
 export interface UnidadAdministrativa {

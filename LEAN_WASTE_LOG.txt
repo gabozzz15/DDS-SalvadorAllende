@@ -81,6 +81,11 @@ Anteriormente, para identificar físicamente un bien se requería:
 - Riesgo de errores de transcripción
 - Tiempo perdido en búsquedas manuales
 
+[2026-02-08] RETRABAJO - Correction
+  Problem: Import error in CodigosModal.tsx due to incorrect path and useState misuse.
+  Solution: Fixed import path to ../lib/api and replaced useState with useEffect.
+  Outcome: Application compiles and runs correctly.
+
 Acción Correctiva:
 Se implementó un sistema automático de generación de códigos:
 - Códigos de barras Code128 escaneables con lectores estándar

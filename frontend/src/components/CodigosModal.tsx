@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Download, QrCode, Barcode } from 'lucide-react';
-import api from '../services/api';
+import api from '../lib/api';
 import Swal from 'sweetalert2';
 
 interface CodigosModalProps {
@@ -37,9 +37,9 @@ export default function CodigosModal({ bienId, codigoInterno, descripcion, onClo
     };
 
     // Cargar códigos al montar el componente
-    useState(() => {
+    useEffect(() => {
         cargarCodigos();
-    });
+    }, []);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

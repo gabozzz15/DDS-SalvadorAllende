@@ -1,0 +1,16 @@
+# Changelog V15.1 - Frontend Integration
+
+## [ADD] Features
+- **Frontend**: Integrated `CodigosModal` to display Barcodes and QR Codes for assets.
+- **Frontend**: Added "Ver Códigos" button to `Bienes` table and `BienModal` details view.
+- **Frontend**: Implemented Photo Gallery in `BienModal`.
+- **Frontend**: Added file upload functionality in `BienModal` (drag & drop/file picker) for creating and editing assets.
+- **Frontend**: Added visual indicators for "Principal" photo and delete options.
+
+## [FIX] Bugs & Issues
+- **Frontend**: Fixed TypeScript interface definitions for `Bien` and `Foto`.
+- **Frontend**: Resolved syntax errors in `BienModal.tsx` related to hook structure (`useEffect`) and function hoisting.
+- **Frontend**: Fixed "Is declared but never read" lint warnings by utilizing loading states and helper functions.
+
+## [DEAL] Technical Debt
+- **Refactor**: Cleaned up `BienModal` state management for photos.

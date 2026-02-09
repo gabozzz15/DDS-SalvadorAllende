@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, QrCode } from 'lucide-react';
 import { Bien } from '../types';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import BienModal from '../components/BienModal';
+import CodigosModal from '../components/CodigosModal';
 import Swal from 'sweetalert2';
 
 const Bienes = () => {
@@ -16,6 +17,9 @@ const Bienes = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'view' | 'create' | 'edit'>('view');
     const [selectedBien, setSelectedBien] = useState<Bien | null>(null);
+
+    const [codigosModalOpen, setCodigosModalOpen] = useState(false);
+    const [selectedBienForCodigos, setSelectedBienForCodigos] = useState<Bien | null>(null);
 
     useEffect(() => {
         fetchBienes();
@@ -58,6 +62,11 @@ const Bienes = () => {
         setSelectedBien(bien);
         setModalMode('edit');
         setModalOpen(true);
+    };
+
+    const handleViewCodigos = (bien: Bien) => {
+        setSelectedBienForCodigos(bien);
+        setCodigosModalOpen(true);
     };
 
     const handleDelete = async (bien: Bien) => {
@@ -239,6 +248,13 @@ const Bienes = () => {
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
+                                                <button
+                                                    onClick={() => handleViewCodigos(bien)}
+                                                    className="text-purple-600 hover:text-purple-900"
+                                                    title="Ver Códigos"
+                                                >
+                                                    <QrCode className="w-4 h-4" />
+                                                </button>
                                                 {isAdmin && (
                                                     <>
                                                         <button
@@ -279,7 +295,18 @@ const Bienes = () => {
                 onClose={() => setModalOpen(false)}
                 onSave={handleModalSave}
                 mode={modalMode}
+                onViewCodigos={handleViewCodigos}
             />
+
+            {/* Códigos Modal */}
+            {codigosModalOpen && selectedBienForCodigos && (
+                <CodigosModal
+                    bienId={selectedBienForCodigos.id}
+                    codigoInterno={selectedBienForCodigos.codigoInterno}
+                    descripcion={selectedBienForCodigos.descripcion}
+                    onClose={() => setCodigosModalOpen(false)}
+                />
+            )}
         </div>
     );
 };
