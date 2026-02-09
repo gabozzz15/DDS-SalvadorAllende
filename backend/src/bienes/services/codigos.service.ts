@@ -38,8 +38,6 @@ export class CodigosService {
 
             const qrDataUrl = await QRCode.toDataURL(texto, {
                 errorCorrectionLevel: 'M', // Nivel de corrección de errores
-                type: 'image/png',
-                quality: 0.92,
                 margin: 1,
                 width: 300, // Ancho en píxeles
                 color: {
