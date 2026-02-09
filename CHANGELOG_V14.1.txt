@@ -1,0 +1,16 @@
+COMMIT: [FIX] V14.1 - corrección de tipos TypeScript en CodigosService.
+
+FIX:
+- CodigosService: Eliminadas opciones no soportadas `type` y `quality` del método `QRCode.toDataURL()`.
+- Compilación TypeScript: Resueltos 2 errores de tipos que impedían la compilación del backend.
+
+OPCIONES VÁLIDAS MANTENIDAS:
+- errorCorrectionLevel: 'M' (nivel medio de corrección de errores)
+- width: 300 (ancho de la imagen en píxeles)
+- margin: 1 (margen alrededor del código)
+- color: { dark, light } (colores del código QR)
+
+---
+
+LEAN WASTE DOCUMENTED:
+- DEFECTOS (Corrección): Error de compilación por uso de API incorrecta
